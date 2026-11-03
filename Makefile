@@ -1,4 +1,4 @@
-PYTHON ?= python
+PYTHON ?= .venv/bin/python
 PNPM ?= pnpm
 TERRAFORM ?= terraform
 
@@ -6,7 +6,7 @@ TERRAFORM ?= terraform
 
 test:
 	$(PYTHON) -m pytest shared/tests api/tests worker/tests
-	$(PNPM) --dir web test --run
+	$(PNPM) --dir web test
 
 lint:
 	$(PYTHON) -m ruff check shared api worker
