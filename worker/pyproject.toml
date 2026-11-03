@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ledgerly-worker"
+version = "0.1.0"
+description = "Placeholder background worker for Ledgerly"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["ledgerly-shared>=0.1.0"]
+
+[project.scripts]
+ledgerly-worker = "ledgerly_worker.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88

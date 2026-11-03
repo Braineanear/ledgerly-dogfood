@@ -1,4 +1,28 @@
-.venv/
-node_modules/
+
 __pycache__/
+.coverage
 .env
+.pytest_cache/
+.ruff_cache/
+.terraform/
+.venv/
+*_override.tf
+*_override.tf.json
+*.egg-info/
+*.py[cod]
+*.tfstate
+*.tfstate.*
+# Build artifacts
+# Local configuration
+# Node
+# Python
+# Terraform
+build/
+coverage.xml
+crash.*.log
+crash.log
+dist/
+htmlcov/
+node_modules/
+override.tf
+override.tf.json
