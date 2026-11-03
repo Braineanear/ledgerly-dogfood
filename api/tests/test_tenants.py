@@ -9,12 +9,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
+from ledgerly_api.auth import get_settings
 from ledgerly_api.db import DEFAULT_DATABASE_URL, get_database_url, get_session
 from ledgerly_api.main import create_app
 
 
 @pytest.fixture
-def client() -> Iterator[TestClient]:
+def client(monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
+    monkeypatch.setenv("API_TOKEN", "test-token")
+    get_settings.cache_clear()
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
@@ -31,9 +34,12 @@ def client() -> Iterator[TestClient]:
 
     application = create_app()
     application.dependency_overrides[get_session] = override_session
-    with TestClient(application) as test_client:
+    with TestClient(
+        application, headers={"Authorization": "Bearer test-token"}
+    ) as test_client:
         yield test_client
     engine.dispose()
+    get_settings.cache_clear()
 
 
 def test_post_creates_tenant_and_returns_id(client: TestClient) -> None:

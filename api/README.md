@@ -33,7 +33,26 @@ make api-dev
 ```
 
 This runs Uvicorn with the `ledgerly_api.main:app` import path and reload
-enabled.
+enabled. `API_TOKEN` must be set (see [Authentication](#authentication)):
+
+```sh
+API_TOKEN=change-me make api-dev
+```
+
+## Authentication
+
+`API_TOKEN` is required and has no default. If it is unset or empty, every
+`/tenants` request is rejected with 401.
+
+`GET /health` and `GET /health/version` are public. All `/tenants` endpoints
+need an `Authorization: Bearer <token>` header:
+
+```sh
+curl -H "Authorization: Bearer $API_TOKEN" http://localhost:8000/tenants/1
+```
+
+A missing or wrong token returns 401 `application/problem+json` with a
+`WWW-Authenticate: Bearer` header.
 
 ## Database
 

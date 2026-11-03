@@ -8,9 +8,10 @@ from ledgerly_shared.orm import Tenant
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
+from ledgerly_api.auth import require_token
 from ledgerly_api.db import get_session
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_token)])
 
 SessionDep = Annotated[Session, Depends(get_session)]
 
@@ -45,7 +46,17 @@ class Problem(BaseModel):
     detail: str
 
 
-@router.post("/tenants", status_code=201, response_model=TenantCreated)
+@router.post(
+    "/tenants",
+    status_code=201,
+    response_model=TenantCreated,
+    responses={
+        401: {
+            "model": Problem,
+            "content": {"application/problem+json": {}},
+        }
+    },
+)
 def create_tenant(body: TenantCreate, session: SessionDep) -> TenantCreated:
     tenant = Tenant(name=body.name)
     session.add(tenant)
@@ -57,6 +68,10 @@ def create_tenant(body: TenantCreate, session: SessionDep) -> TenantCreated:
     "/tenants/{tenant_id}",
     response_model=TenantRead,
     responses={
+        401: {
+            "model": Problem,
+            "content": {"application/problem+json": {}},
+        },
         404: {
             "model": Problem,
             "content": {"application/problem+json": {}},
