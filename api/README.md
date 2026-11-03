@@ -1,8 +1,16 @@
 # Ledgerly API
 
-`ledgerly-api` is the FastAPI application scaffold for Ledgerly. It currently
-provides only application bootstrap behavior and does not connect to databases,
-queues, or external services.
+`ledgerly-api` is the FastAPI application scaffold for Ledgerly. It does not
+connect to databases, queues, or external services. It exposes two health
+endpoints:
+
+- `GET /health` returns `{"status": "ok"}`.
+- `GET /health/version` returns `{"sha": "<git sha>"}`.
+
+The sha is resolved once at startup (when the app is created) from the
+`GIT_SHA` environment variable, then from `git rev-parse HEAD`, and otherwise
+is `"unknown"`. Installed or containerised builds without a `.git` directory
+should set `GIT_SHA`, or they will report `"unknown"`.
 
 ## Install for local development
 
