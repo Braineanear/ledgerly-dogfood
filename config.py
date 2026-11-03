@@ -1,0 +1,2 @@
+TOKEN = "sk-REPLACE_ME_1234567890abcdefghijklmnop"
+TIMEOUT = 30
