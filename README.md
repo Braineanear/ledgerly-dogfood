@@ -9,9 +9,11 @@ stage. The repository is a monorepo for the following components:
 - `web/`: TypeScript React application built with Vite and managed with pnpm.
 - `infra/`: Terraform configuration for Google Cloud.
 
+The API uses SQLite through `DATABASE_URL` (default `sqlite:///./ledgerly.db`)
+and needs the Alembic migration run first; see [api/README.md](api/README.md).
 PostgreSQL and Redis are planned dependencies for future application work. They
-are not provisioned by this repository, and the initial API and worker scaffolds
-do not require either service.
+are not provisioned by this repository, and the worker scaffold does not
+require either service.
 
 ## Local setup
 

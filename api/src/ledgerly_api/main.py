@@ -5,6 +5,8 @@ import subprocess
 
 from fastapi import FastAPI
 
+from ledgerly_api.tenants import router as tenants_router
+
 
 def resolve_git_sha() -> str:
     """Return the git sha from GIT_SHA, then git, else "unknown"."""
@@ -28,6 +30,7 @@ def create_app() -> FastAPI:
     """Create the Ledgerly API with health routes."""
     sha = resolve_git_sha()
     application = FastAPI(title="Ledgerly API")
+    application.include_router(tenants_router)
 
     @application.get("/health")
     def health() -> dict[str, str]:
