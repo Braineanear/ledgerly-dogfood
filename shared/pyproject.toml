@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Shared types for Ledgerly Python services"
 readme = "README.md"
 requires-python = ">=3.11"
+dependencies = ["sqlalchemy>=2", "alembic"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
