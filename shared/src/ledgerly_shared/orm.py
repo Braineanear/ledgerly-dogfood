@@ -1,6 +1,7 @@
 """SQLAlchemy models for the Ledgerly tenant, product and stock tables."""
 
 from sqlalchemy import (
+    BigInteger,
     CheckConstraint,
     ForeignKey,
     ForeignKeyConstraint,
@@ -49,6 +50,10 @@ class Product(Base):
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenant.id"))
     sku: Mapped[str] = mapped_column(String(64))
     name: Mapped[str] = mapped_column(String(255))
+    # Nullable only for rows that predate migration 0002; the API
+    # always requires both on create.
+    price_minor: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
 
 
 class StockLevel(Base):

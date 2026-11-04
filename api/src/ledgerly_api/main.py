@@ -6,6 +6,7 @@ import subprocess
 from fastapi import FastAPI
 
 from ledgerly_api.auth import AuthError, auth_error_handler
+from ledgerly_api.products import router as products_router
 from ledgerly_api.tenants import router as tenants_router
 
 
@@ -33,6 +34,7 @@ def create_app() -> FastAPI:
     application = FastAPI(title="Ledgerly API")
     application.add_exception_handler(AuthError, auth_error_handler)
     application.include_router(tenants_router)
+    application.include_router(products_router)
 
     @application.get("/health")
     def health() -> dict[str, str]:
