@@ -1,9 +1,9 @@
 from pathlib import Path
 
 import sqlalchemy as sa
+from alembic.config import Config
 
 from alembic import command
-from alembic.config import Config
 
 ALEMBIC_INI = Path(__file__).resolve().parents[1] / "alembic.ini"
 
