@@ -2,14 +2,14 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, Request
 from ledgerly_shared.orm import Tenant
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
 from ledgerly_api.auth import require_token
 from ledgerly_api.db import get_session
+from ledgerly_api.problems import problem_response
 
 router = APIRouter(dependencies=[Depends(require_token)])
 
@@ -44,6 +44,7 @@ class Problem(BaseModel):
     title: str
     status: int
     detail: str
+    instance: str | None = None
 
 
 @router.post(
@@ -78,18 +79,13 @@ def create_tenant(body: TenantCreate, session: SessionDep) -> TenantCreated:
         }
     },
 )
-def get_tenant(tenant_id: int, session: SessionDep):
+def get_tenant(request: Request, tenant_id: int, session: SessionDep):
     tenant = session.get(Tenant, tenant_id)
     if tenant is None:
-        problem = Problem(
-            type="about:blank",
+        return problem_response(
+            request,
+            404,
+            f"Tenant {tenant_id} was not found.",
             title="Not Found",
-            status=404,
-            detail=f"Tenant {tenant_id} was not found.",
-        )
-        return JSONResponse(
-            status_code=404,
-            content=problem.model_dump(),
-            media_type="application/problem+json",
         )
     return TenantRead(id=tenant.id, name=tenant.name)

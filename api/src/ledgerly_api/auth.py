@@ -9,6 +9,8 @@ from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 from pydantic_settings import BaseSettings
 
+from ledgerly_api.problems import problem_response
+
 
 class Settings(BaseSettings):
     """Application settings read from the environment."""
@@ -33,15 +35,11 @@ class AuthError(Exception):
 async def auth_error_handler(request: Request, exc: Exception) -> JSONResponse:
     """Render an AuthError as a 401 application/problem+json response."""
     detail = exc.detail if isinstance(exc, AuthError) else "Unauthorized."
-    return JSONResponse(
-        status_code=401,
-        content={
-            "type": "about:blank",
-            "title": "Unauthorized",
-            "status": 401,
-            "detail": detail,
-        },
-        media_type="application/problem+json",
+    return problem_response(
+        request,
+        401,
+        detail,
+        title="Unauthorized",
         headers={"WWW-Authenticate": "Bearer"},
     )
 

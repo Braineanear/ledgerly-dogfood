@@ -4,7 +4,7 @@ import base64
 import binascii
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse
 from ledgerly_shared.orm import Product, Tenant
 from pydantic import BaseModel, ConfigDict, Field
@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from ledgerly_api.auth import require_token
+from ledgerly_api.problems import problem_response
 from ledgerly_api.tenants import Problem, SessionDep
 
 router = APIRouter(dependencies=[Depends(require_token)])
@@ -57,22 +58,16 @@ class ProductPage(BaseModel):
     next_cursor: str | None
 
 
-def _problem(status: int, title: str, detail: str) -> JSONResponse:
-    problem = Problem(
-        type="about:blank",
-        title=title,
-        status=status,
-        detail=detail,
-    )
-    return JSONResponse(
-        status_code=status,
-        content=problem.model_dump(),
-        media_type="application/problem+json",
-    )
+def _problem(
+    request: Request, status: int, title: str, detail: str
+) -> JSONResponse:
+    return problem_response(request, status, detail, title=title)
 
 
-def _tenant_not_found(tenant_id: int) -> JSONResponse:
-    return _problem(404, "Not Found", f"Tenant {tenant_id} was not found.")
+def _tenant_not_found(request: Request, tenant_id: int) -> JSONResponse:
+    return _problem(
+        request, 404, "Not Found", f"Tenant {tenant_id} was not found."
+    )
 
 
 def _read(product: Product) -> ProductRead:
@@ -125,9 +120,14 @@ def _decode_cursor(cursor: str, tenant_id: int) -> int | None:
         409: _PROBLEM_RESPONSE,
     },
 )
-def create_product(tenant_id: int, body: ProductCreate, session: SessionDep):
+def create_product(
+    request: Request,
+    tenant_id: int,
+    body: ProductCreate,
+    session: SessionDep,
+):
     if session.get(Tenant, tenant_id) is None:
-        return _tenant_not_found(tenant_id)
+        return _tenant_not_found(request, tenant_id)
     product = Product(
         tenant_id=tenant_id,
         sku=body.sku,
@@ -150,6 +150,7 @@ def create_product(tenant_id: int, body: ProductCreate, session: SessionDep):
             # Not a sku conflict, so do not report it as one.
             raise
         return _problem(
+            request,
             409,
             "Conflict",
             f"Product with sku {body.sku} already exists in "
@@ -168,18 +169,21 @@ def create_product(tenant_id: int, body: ProductCreate, session: SessionDep):
     },
 )
 def list_products(
+    request: Request,
     tenant_id: int,
     session: SessionDep,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     cursor: str | None = None,
 ):
     if session.get(Tenant, tenant_id) is None:
-        return _tenant_not_found(tenant_id)
+        return _tenant_not_found(request, tenant_id)
     query = select(Product).where(Product.tenant_id == tenant_id)
     if cursor is not None:
         after = _decode_cursor(cursor, tenant_id)
         if after is None:
-            return _problem(400, "Bad Request", "The cursor is not valid.")
+            return _problem(
+                request, 400, "Bad Request", "The cursor is not valid."
+            )
         query = query.where(Product.id > after)
     rows = list(session.scalars(query.order_by(Product.id).limit(limit + 1)))
     page = rows[:limit]
