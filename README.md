@@ -89,6 +89,14 @@ movements, so the job is idempotent: a second run changes nothing.
 - SQLite ignores `FOR UPDATE`, so the SQLite tests do not prove this locking.
   The Postgres test runs only when `TEST_POSTGRES_URL` is set.
 
+## Working with Dikasta
+
+Dikasta commands used with this repository:
+
+- `dikasta login`: sign in.
+- `dikasta doctor`: check the setup.
+- `dikasta chat`: start a chat.
+
 ## Automation
 
 The root Makefile exposes these commands:
