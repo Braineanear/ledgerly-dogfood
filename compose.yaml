@@ -45,6 +45,7 @@ services:
     image: ledgerly-api
     environment:
       API_TOKEN: ${API_TOKEN:-}
+      ADMIN_KEY: ${ADMIN_KEY:-}
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-}:${POSTGRES_PASSWORD_URLENCODED:-}@postgres:5432/${POSTGRES_DB:-}
       REDIS_URL: redis://redis:6379/0
     ports:

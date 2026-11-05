@@ -6,6 +6,7 @@ from importlib.metadata import PackageNotFoundError, version
 
 from fastapi import FastAPI
 
+from ledgerly_api.admin import router as admin_router
 from ledgerly_api.auth import (
     AuthError,
     auth_error_handler,
@@ -57,6 +58,7 @@ def create_app() -> FastAPI:
     application.include_router(tenants_router)
     application.include_router(products_router)
     application.include_router(ready_router)
+    application.include_router(admin_router)
 
     @application.get("/health")
     def health() -> dict[str, str]:
