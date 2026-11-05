@@ -1,6 +1,7 @@
 """Smoke tests for the FastAPI application."""
 
 import subprocess
+from importlib import metadata
 
 import pytest
 from fastapi.testclient import TestClient
@@ -46,6 +47,44 @@ def test_health_version_uses_env_sha(
         response = client.get("/health/version")
 
     assert response.status_code == 200
+    assert response.json() == {"sha": "abc123"}
+
+
+def test_version_returns_package_version() -> None:
+    """The version route reports the installed api package version."""
+    with TestClient(create_app()) as client:
+        response = client.get("/version")
+
+    assert response.status_code == 200
+    assert response.json() == {"version": metadata.version("ledgerly-api")}
+
+
+def test_version_falls_back_to_unknown_when_not_installed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A missing distribution yields "unknown"."""
+
+    def raise_missing(name: str) -> str:
+        raise metadata.PackageNotFoundError(name)
+
+    monkeypatch.setattr(main, "version", raise_missing)
+
+    with TestClient(create_app()) as client:
+        response = client.get("/version")
+
+    assert response.status_code == 200
+    assert response.json() == {"version": "unknown"}
+
+
+def test_health_version_keeps_sha_shape(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The existing health version route still returns the sha."""
+    monkeypatch.setenv("GIT_SHA", "abc123")
+
+    with TestClient(create_app()) as client:
+        response = client.get("/health/version")
+
     assert response.json() == {"sha": "abc123"}
 
 
@@ -108,3 +147,67 @@ def test_sha_is_resolved_once(monkeypatch: pytest.MonkeyPatch) -> None:
         client.get("/health/version")
 
     assert len(calls) == 1
+
+
+def test_version_returns_json_content_type() -> None:
+    """The version route returns application/json content-type header."""
+    with TestClient(create_app()) as client:
+        response = client.get("/version")
+
+    assert response.status_code == 200
+    assert "application/json" in response.headers["content-type"]
+
+
+@pytest.mark.parametrize("method", ["post", "put", "delete", "patch"])
+def test_version_disallows_non_get_methods(method: str) -> None:
+    """Non-GET HTTP methods on /version return 405 Method Not Allowed."""
+    with TestClient(create_app()) as client:
+        client_method = getattr(client, method)
+        response = client_method("/version")
+
+    assert response.status_code == 405
+
+
+def test_version_ignores_query_parameters() -> None:
+    """The version endpoint ignores arbitrary query parameters."""
+    with TestClient(create_app()) as client:
+        response = client.get("/version?debug=true&format=raw")
+
+    assert response.status_code == 200
+    assert "version" in response.json()
+
+
+def test_version_is_public_with_or_without_auth_headers() -> None:
+    """The version route accepts requests regardless of authorization headers."""
+    with TestClient(create_app()) as client:
+        res_no_auth = client.get("/version")
+        res_bad_auth = client.get(
+            "/version", headers={"Authorization": "Bearer invalid-token"}
+        )
+
+    assert res_no_auth.status_code == 200
+    assert res_bad_auth.status_code == 200
+    assert res_no_auth.json() == res_bad_auth.json()
+
+
+def test_version_response_includes_request_id_header() -> None:
+    """The version response includes the x-request-id middleware header."""
+    with TestClient(create_app()) as client:
+        response = client.get("/version")
+
+    assert response.status_code == 200
+    assert "x-request-id" in response.headers
+
+
+def test_version_returns_custom_package_version_string(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The version route passes through any package version string verbatim."""
+    monkeypatch.setattr(main, "version", lambda name: "1.2.3-beta.4")
+
+    with TestClient(create_app()) as client:
+        response = client.get("/version")
+
+    assert response.status_code == 200
+    assert response.json() == {"version": "1.2.3-beta.4"}
+

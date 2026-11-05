@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+from importlib.metadata import PackageNotFoundError, version
 
 from fastapi import FastAPI
 
@@ -36,6 +37,14 @@ def resolve_git_sha() -> str:
     return (result.stdout or "").strip() or "unknown"
 
 
+def resolve_package_version() -> str:
+    """Return the ledgerly-api package version, else "unknown"."""
+    try:
+        return version("ledgerly-api")
+    except PackageNotFoundError:
+        return "unknown"
+
+
 def create_app() -> FastAPI:
     """Create the Ledgerly API with health routes."""
     validate_settings_at_startup()
@@ -56,6 +65,10 @@ def create_app() -> FastAPI:
     @application.get("/health/version")
     def health_version() -> dict[str, str]:
         return {"sha": sha}
+
+    @application.get("/version")
+    def package_version() -> dict[str, str]:
+        return {"version": resolve_package_version()}
 
     return application
 
