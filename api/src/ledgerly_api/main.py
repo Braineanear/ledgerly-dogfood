@@ -3,6 +3,7 @@
 import os
 import subprocess
 from importlib.metadata import PackageNotFoundError, version
+from time import monotonic
 
 from fastapi import FastAPI
 
@@ -51,6 +52,7 @@ def create_app() -> FastAPI:
     validate_settings_at_startup()
     configure_logging()
     sha = resolve_git_sha()
+    started = monotonic()
     application = FastAPI(title="Ledgerly API")
     application.add_middleware(RequestIdMiddleware)
     application.add_exception_handler(AuthError, auth_error_handler)
@@ -71,6 +73,14 @@ def create_app() -> FastAPI:
     @application.get("/version")
     def package_version() -> dict[str, str]:
         return {"version": resolve_package_version()}
+
+    @application.get("/ping")
+    def ping() -> dict[str, bool]:
+        return {"pong": True}
+
+    @application.get("/uptime")
+    def uptime() -> dict[str, float]:
+        return {"uptime_seconds": max(0.0, monotonic() - started)}
 
     return application
 

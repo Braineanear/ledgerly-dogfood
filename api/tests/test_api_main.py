@@ -37,6 +37,23 @@ def test_health_returns_ok() -> None:
     assert response.json() == {"status": "ok"}
 
 
+def test_ping_returns_pong() -> None:
+    """The ping route reports pong."""
+    with TestClient(create_app()) as client:
+        response = client.get("/ping")
+
+    assert response.status_code == 200
+    assert response.json() == {"pong": True}
+
+
+def test_ping_disallows_post() -> None:
+    """POST on /ping returns 405 Method Not Allowed."""
+    with TestClient(create_app()) as client:
+        response = client.post("/ping")
+
+    assert response.status_code == 405
+
+
 def test_health_version_uses_env_sha(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -210,4 +227,173 @@ def test_version_returns_custom_package_version_string(
 
     assert response.status_code == 200
     assert response.json() == {"version": "1.2.3-beta.4"}
+
+
+def _fake_clock(monkeypatch: pytest.MonkeyPatch, times: list[float]) -> None:
+    """Replace main.monotonic with a clock that yields times in order."""
+    values = iter(times)
+    monkeypatch.setattr(main, "monotonic", lambda: next(values))
+
+
+def test_uptime_returns_seconds_since_start(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The uptime route reports the time elapsed since app creation."""
+    _fake_clock(monkeypatch, [100.0, 107.5])
+
+    with TestClient(create_app()) as client:
+        response = client.get("/uptime")
+
+    assert response.status_code == 200
+    assert response.json() == {"uptime_seconds": 7.5}
+
+
+def test_uptime_increases_between_requests(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A later request reports a larger uptime than an earlier one."""
+    _fake_clock(monkeypatch, [100.0, 101.0, 105.0])
+
+    with TestClient(create_app()) as client:
+        first = client.get("/uptime").json()["uptime_seconds"]
+        second = client.get("/uptime").json()["uptime_seconds"]
+
+    assert first == 1.0
+    assert second == 5.0
+    assert second > first
+
+
+@pytest.mark.parametrize("method", ["post", "put", "delete", "patch"])
+def test_uptime_disallows_non_get_methods(
+    monkeypatch: pytest.MonkeyPatch, method: str
+) -> None:
+    """Non-GET HTTP methods on /uptime return 405 Method Not Allowed."""
+    _fake_clock(monkeypatch, [100.0, 101.0])
+
+    with TestClient(create_app()) as client:
+        response = getattr(client, method)("/uptime")
+
+    assert response.status_code == 405
+
+
+def test_uptime_is_public_with_bad_auth_header(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The uptime route ignores an invalid authorization header."""
+    _fake_clock(monkeypatch, [100.0, 107.5])
+
+    with TestClient(create_app()) as client:
+        response = client.get(
+            "/uptime", headers={"Authorization": "Bearer invalid-token"}
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {"uptime_seconds": 7.5}
+
+
+def test_uptime_response_includes_request_id_header(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The uptime response includes the x-request-id middleware header."""
+    _fake_clock(monkeypatch, [100.0, 107.5])
+
+    with TestClient(create_app()) as client:
+        response = client.get("/uptime")
+
+    assert response.status_code == 200
+    assert "x-request-id" in response.headers
+
+
+def test_uptime_zero_elapsed_time(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Uptime returns 0.0 when no time has elapsed since app creation."""
+    _fake_clock(monkeypatch, [500.0, 500.0])
+
+    with TestClient(create_app()) as client:
+        response = client.get("/uptime")
+
+    assert response.status_code == 200
+    assert response.json() == {"uptime_seconds": 0.0}
+
+
+def test_uptime_clamped_to_zero_on_backward_clock(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Uptime is non-negative even if monotonic time moves backward."""
+    _fake_clock(monkeypatch, [500.0, 450.0])
+
+    with TestClient(create_app()) as client:
+        response = client.get("/uptime")
+
+    assert response.status_code == 200
+    assert response.json() == {"uptime_seconds": 0.0}
+
+
+def test_uptime_content_type_is_json(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The uptime route returns application/json content-type header."""
+    _fake_clock(monkeypatch, [100.0, 105.0])
+
+    with TestClient(create_app()) as client:
+        response = client.get("/uptime")
+
+    assert response.status_code == 200
+    assert "application/json" in response.headers["content-type"]
+
+
+def test_uptime_ignores_query_parameters(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The uptime endpoint ignores arbitrary query parameters."""
+    _fake_clock(monkeypatch, [100.0, 102.5])
+
+    with TestClient(create_app()) as client:
+        response = client.get("/uptime?debug=true&foo=bar")
+
+    assert response.status_code == 200
+    assert response.json() == {"uptime_seconds": 2.5}
+
+
+def test_uptime_module_app_instance() -> None:
+    """The module-level app instance responds to GET /uptime."""
+    with TestClient(app) as client:
+        response = client.get("/uptime")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "uptime_seconds" in data
+    assert isinstance(data["uptime_seconds"], (int, float))
+    assert data["uptime_seconds"] >= 0.0
+
+
+def test_uptime_independent_per_app_instance(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Separate app instances track independent start times."""
+    _fake_clock(monkeypatch, [100.0, 200.0, 210.0, 215.0])
+
+    app1 = create_app()
+    app2 = create_app()
+
+    with TestClient(app1) as client1, TestClient(app2) as client2:
+        res1 = client1.get("/uptime")
+        res2 = client2.get("/uptime")
+
+    assert res1.json() == {"uptime_seconds": 110.0}
+    assert res2.json() == {"uptime_seconds": 15.0}
+
+
+def test_uptime_response_exact_keys(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The uptime JSON object contains exactly the 'uptime_seconds' key."""
+    _fake_clock(monkeypatch, [100.0, 105.0])
+
+    with TestClient(create_app()) as client:
+        data = client.get("/uptime").json()
+
+    assert list(data.keys()) == ["uptime_seconds"]
+
 
