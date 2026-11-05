@@ -1,6 +1,7 @@
 """Tests for the tenant routes, using an in-memory SQLite database."""
 
 from collections.abc import Iterator
+from datetime import datetime
 
 import pytest
 from fastapi.testclient import TestClient
@@ -50,7 +51,10 @@ def test_post_creates_tenant_and_returns_id(client: TestClient) -> None:
     assert isinstance(tenant_id, int)
     fetched = client.get(f"/tenants/{tenant_id}")
     assert fetched.status_code == 200
-    assert fetched.json() == {"id": tenant_id, "name": "Acme"}
+    body = fetched.json()
+    assert body["id"] == tenant_id
+    assert body["name"] == "Acme"
+    assert isinstance(datetime.fromisoformat(body["created_at"]), datetime)
 
 
 @pytest.mark.parametrize(
@@ -69,7 +73,10 @@ def test_get_returns_tenant(client: TestClient) -> None:
     response = client.get(f"/tenants/{created['id']}")
 
     assert response.status_code == 200
-    assert response.json() == {"id": created["id"], "name": "Globex"}
+    body = response.json()
+    assert body["id"] == created["id"]
+    assert body["name"] == "Globex"
+    assert isinstance(datetime.fromisoformat(body["created_at"]), datetime)
 
 
 def test_get_unknown_tenant_returns_problem_json(client: TestClient) -> None:
@@ -82,6 +89,18 @@ def test_get_unknown_tenant_returns_problem_json(client: TestClient) -> None:
     assert body["title"] == "Not Found"
     assert body["status"] == 404
     assert "999" in body["detail"]
+
+
+def test_get_malformed_id_without_token_is_unauthorized(
+    client: TestClient,
+) -> None:
+    del client.headers["Authorization"]
+
+    response = client.get("/tenants/not-an-id")
+
+    assert response.status_code == 401
+    assert response.headers["content-type"] == "application/problem+json"
+    assert response.headers["www-authenticate"] == "Bearer"
 
 
 def test_tests_are_isolated(client: TestClient) -> None:

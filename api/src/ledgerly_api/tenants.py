@@ -1,5 +1,6 @@
 """Tenant routes: create a tenant and fetch one by id."""
 
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
@@ -35,6 +36,7 @@ class TenantRead(BaseModel):
 
     id: int
     name: str
+    created_at: datetime
 
 
 class Problem(BaseModel):
@@ -88,4 +90,6 @@ def get_tenant(request: Request, tenant_id: int, session: SessionDep):
             f"Tenant {tenant_id} was not found.",
             title="Not Found",
         )
-    return TenantRead(id=tenant.id, name=tenant.name)
+    return TenantRead(
+        id=tenant.id, name=tenant.name, created_at=tenant.created_at
+    )

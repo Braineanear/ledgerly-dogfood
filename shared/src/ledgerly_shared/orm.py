@@ -38,6 +38,11 @@ class Tenant(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(255))
+    # The client-side default covers SQLite, where migration 0004 cannot
+    # add a database-level default to the existing table.
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), default=func.now()
+    )
 
 
 class Product(Base):
