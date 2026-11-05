@@ -50,7 +50,8 @@ supervisor.
    `migrate` service before `api` starts.
 
 The api listens on port 8000 and the web dev server on port 5173. To re-run
-migrations manually, use `docker compose run --rm migrate`.
+migrations manually, use `docker compose run --rm migrate`. Outside compose, run the same migrations
+from the repository root with `DATABASE_URL=... make migrate`.
 
 Variables use the `${VAR:-}` form, so `docker compose config` renders without
 a `.env`, but real values must be set before `up`. The postgres and redis
@@ -63,6 +64,8 @@ The root Makefile exposes these commands:
 - `make test`: run Python and web tests.
 - `make lint`: run Python and web linters.
 - `make build`: build Python packages and the web application.
+- `make migrate`: apply the Alembic migrations to the database selected by
+  `DATABASE_URL`, which must be set.
 - `make seed`: write 2 tenants and 20 products into the database selected by
   `DATABASE_URL`, which must be set. Run the Alembic migration first; see
   [api/README.md](api/README.md#seed-data).

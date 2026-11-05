@@ -2,7 +2,7 @@ PYTHON ?= .venv/bin/python
 PNPM ?= pnpm
 TERRAFORM ?= terraform
 
-.PHONY: test lint build verify infra-validate api-dev worker-dev web-dev dev seed
+.PHONY: test lint build verify infra-validate api-dev worker-dev web-dev dev seed migrate
 
 test:
 	$(PYTHON) -m pytest shared/tests api/tests worker/tests
@@ -30,6 +30,9 @@ api-dev:
 
 seed:
 	$(PYTHON) -m ledgerly_api.seed
+
+migrate:
+	$(PYTHON) -m alembic -c shared/alembic.ini upgrade head
 
 worker-dev:
 	$(PYTHON) -m ledgerly_worker.main

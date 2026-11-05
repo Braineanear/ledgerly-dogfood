@@ -64,14 +64,21 @@ The API reads the `DATABASE_URL` environment variable when a request needs a
 database. It is required and has no default; for SQLite, a relative file URL
 such as `sqlite:///./ledgerly.db` is relative to the directory the API is
 started from. A session is opened per request and closed
-afterwards. The API does not create tables, so run the Alembic migration first,
-from the same directory you start the API from:
+afterwards. The API does not create tables, so run the Alembic migration first.
+The preferred way is `make migrate` from the repository root:
+
+```sh
+DATABASE_URL=sqlite:///./ledgerly.db make migrate
+```
+
+Alternatively, run Alembic directly from the same directory you start the API
+from:
 
 ```sh
 DATABASE_URL=sqlite:///./ledgerly.db python -m alembic -c shared/alembic.ini upgrade head
 ```
 
-Adjust the `-c` path to point at `shared/alembic.ini` from your working
+With the raw command, adjust the `-c` path to point at `shared/alembic.ini` from your working
 directory. Always set `DATABASE_URL` explicitly when running the migration so
 it creates the same file the API opens. Use the same `DATABASE_URL` for both.
 
