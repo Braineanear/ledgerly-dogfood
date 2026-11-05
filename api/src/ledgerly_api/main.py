@@ -6,7 +6,10 @@ import subprocess
 from fastapi import FastAPI
 
 from ledgerly_api.auth import AuthError, auth_error_handler
+from ledgerly_api.logging_config import configure_logging
+from ledgerly_api.problems import register_problem_handlers
 from ledgerly_api.products import router as products_router
+from ledgerly_api.request_id import RequestIdMiddleware
 from ledgerly_api.tenants import router as tenants_router
 
 
@@ -30,9 +33,12 @@ def resolve_git_sha() -> str:
 
 def create_app() -> FastAPI:
     """Create the Ledgerly API with health routes."""
+    configure_logging()
     sha = resolve_git_sha()
     application = FastAPI(title="Ledgerly API")
+    application.add_middleware(RequestIdMiddleware)
     application.add_exception_handler(AuthError, auth_error_handler)
+    register_problem_handlers(application)
     application.include_router(tenants_router)
     application.include_router(products_router)
 

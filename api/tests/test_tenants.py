@@ -57,9 +57,7 @@ def test_post_creates_tenant_and_returns_id(client: TestClient) -> None:
     "payload",
     [{}, {"name": ""}, {"name": "   "}, {"name": None}],
 )
-def test_post_rejects_missing_or_empty_name(
-    client: TestClient, payload: dict
-) -> None:
+def test_post_rejects_missing_or_empty_name(client: TestClient, payload: dict) -> None:
     response = client.post("/tenants", json=payload)
 
     assert response.status_code == 422

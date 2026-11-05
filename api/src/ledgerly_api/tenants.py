@@ -76,7 +76,7 @@ def create_tenant(body: TenantCreate, session: SessionDep) -> TenantCreated:
         404: {
             "model": Problem,
             "content": {"application/problem+json": {}},
-        }
+        },
     },
 )
 def get_tenant(request: Request, tenant_id: int, session: SessionDep):

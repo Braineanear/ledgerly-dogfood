@@ -1,14 +1,18 @@
-"""SQLAlchemy models for the Ledgerly tenant, product and stock tables."""
+"""SQLAlchemy models for tenants, products, stock levels and orders."""
+
+from datetime import datetime
 
 from sqlalchemy import (
     BigInteger,
     CheckConstraint,
+    DateTime,
     ForeignKey,
     ForeignKeyConstraint,
     Integer,
     MetaData,
     String,
     UniqueConstraint,
+    func,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -75,3 +79,20 @@ class StockLevel(Base):
     product_id: Mapped[int] = mapped_column(Integer)
     warehouse: Mapped[str] = mapped_column(String(64))
     quantity: Mapped[int] = mapped_column(Integer)
+
+
+class Order(Base):
+    """A quantity of one product ordered at a point in time."""
+
+    __tablename__ = "order"
+    __table_args__ = (CheckConstraint("quantity >= 0", name="quantity_non_negative"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    # The tenant is reachable only through product.tenant_id, so this
+    # foreign key is plain: the composite (tenant_id, id) unique
+    # constraint on product does not apply.
+    product_id: Mapped[int] = mapped_column(ForeignKey("product.id"))
+    quantity: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )

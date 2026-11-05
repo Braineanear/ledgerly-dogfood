@@ -1,10 +1,10 @@
-"""Product routes: create and list the products of one tenant."""
+"""Product routes: create, list and look up one tenant's products."""
 
 import base64
 import binascii
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Path, Query, Request
 from fastapi.responses import JSONResponse
 from ledgerly_shared.orm import Product, Tenant
 from pydantic import BaseModel, ConfigDict, Field
@@ -58,16 +58,12 @@ class ProductPage(BaseModel):
     next_cursor: str | None
 
 
-def _problem(
-    request: Request, status: int, title: str, detail: str
-) -> JSONResponse:
+def _problem(request: Request, status: int, title: str, detail: str) -> JSONResponse:
     return problem_response(request, status, detail, title=title)
 
 
 def _tenant_not_found(request: Request, tenant_id: int) -> JSONResponse:
-    return _problem(
-        request, 404, "Not Found", f"Tenant {tenant_id} was not found."
-    )
+    return _problem(request, 404, "Not Found", f"Tenant {tenant_id} was not found.")
 
 
 def _read(product: Product) -> ProductRead:
@@ -153,8 +149,7 @@ def create_product(
             request,
             409,
             "Conflict",
-            f"Product with sku {body.sku} already exists in "
-            f"tenant {tenant_id}.",
+            f"Product with sku {body.sku} already exists in tenant {tenant_id}.",
         )
     return _read(product)
 
@@ -181,9 +176,7 @@ def list_products(
     if cursor is not None:
         after = _decode_cursor(cursor, tenant_id)
         if after is None:
-            return _problem(
-                request, 400, "Bad Request", "The cursor is not valid."
-            )
+            return _problem(request, 400, "Bad Request", "The cursor is not valid.")
         query = query.where(Product.id > after)
     rows = list(session.scalars(query.order_by(Product.id).limit(limit + 1)))
     page = rows[:limit]
@@ -194,3 +187,34 @@ def list_products(
         items=[_read(product) for product in page],
         next_cursor=next_cursor,
     )
+
+
+@router.get(
+    "/tenants/{tenant_id}/products/{product_id}",
+    response_model=ProductRead,
+    responses={
+        401: _PROBLEM_RESPONSE,
+        404: _PROBLEM_RESPONSE,
+        422: _PROBLEM_RESPONSE,
+    },
+)
+def get_product(
+    request: Request,
+    tenant_id: int,
+    product_id: Annotated[int, Path(ge=1, le=MAX_ID)],
+    session: SessionDep,
+):
+    if session.get(Tenant, tenant_id) is None:
+        return _tenant_not_found(request, tenant_id)
+    # Filter on both columns: another tenant's id must look missing.
+    product = session.scalar(
+        select(Product).where(Product.tenant_id == tenant_id, Product.id == product_id)
+    )
+    if product is None:
+        return _problem(
+            request,
+            404,
+            "Not Found",
+            f"Product {product_id} was not found.",
+        )
+    return _read(product)

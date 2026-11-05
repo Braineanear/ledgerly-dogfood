@@ -46,9 +46,7 @@ def problem_response(
     )
 
 
-async def http_exception_handler(
-    request: Request, exc: Exception
-) -> JSONResponse:
+async def http_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Render router and HTTP errors such as 404 and 405."""
     if not isinstance(exc, StarletteHTTPException):
         return await unhandled_exception_handler(request, exc)
@@ -60,9 +58,7 @@ async def http_exception_handler(
     )
 
 
-async def validation_error_handler(
-    request: Request, exc: Exception
-) -> JSONResponse:
+async def validation_error_handler(request: Request, exc: Exception) -> JSONResponse:
     """Render request validation failures as 422 with field errors."""
     errors = exc.errors() if isinstance(exc, RequestValidationError) else []
     return problem_response(
@@ -73,9 +69,7 @@ async def validation_error_handler(
     )
 
 
-async def unhandled_exception_handler(
-    request: Request, exc: Exception
-) -> JSONResponse:
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Log an unexpected error and answer a generic 500."""
     logger.error(
         "Unhandled exception for %s",

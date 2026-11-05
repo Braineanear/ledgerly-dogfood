@@ -55,9 +55,7 @@ def test_price_migration_keeps_legacy_rows_with_null_values(
         inspector = sa.inspect(connection)
         columns = {column["name"] for column in inspector.get_columns("product")}
         products = connection.execute(sa.text("SELECT COUNT(*) FROM product")).scalar()
-        stock = connection.execute(
-            sa.text("SELECT COUNT(*) FROM stock_level")
-        ).scalar()
+        stock = connection.execute(sa.text("SELECT COUNT(*) FROM stock_level")).scalar()
     assert columns == {"id", "tenant_id", "sku", "name"}
     assert products == 1
     assert stock == 1
