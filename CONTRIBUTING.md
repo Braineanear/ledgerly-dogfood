@@ -57,6 +57,25 @@ make verify
 `make infra-validate` runs Terraform initialization with its backend disabled
 and validates configuration only. It does not create infrastructure.
 
+## Pre-commit hook (optional)
+
+You can run ruff automatically before each commit:
+
+```sh
+python -m pip install pre-commit
+pre-commit install
+pre-commit run --all-files
+```
+
+The last command is optional and checks every file once. The hook runs
+`ruff check` only, with no autofix and no formatting, on `shared/`, `api/`,
+and `worker/`. It is local and optional, and it does not replace
+`make lint`, which remains the gate. CI still runs only `make test`.
+
+The hook pins its own ruff version in `.pre-commit-config.yaml`, which may
+differ from the ruff installed in your virtual environment, so results can
+differ between the two.
+
 ## Dependency updates
 
 Renovate is configured in `renovate.json`. It opens one pull request a week,
