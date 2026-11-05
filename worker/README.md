@@ -1,8 +1,9 @@
 # Ledgerly worker
 
 `ledgerly-worker` is the placeholder background-worker package for Ledgerly.
-It currently starts and exits without connecting to queues, databases,
-schedulers, or external services.
+It starts a no-op run loop that stays alive until it receives SIGINT (Ctrl-C)
+or SIGTERM, then exits 0. It does not connect to queues, databases,
+schedulers, or external services, and it processes no real jobs.
 
 ## Install for local development
 
@@ -31,4 +32,5 @@ Or use the root development target:
 make worker-dev
 ```
 
-Both commands intentionally perform no jobs.
+Both commands start the no-op run loop and keep running until SIGINT or
+SIGTERM, then exit 0. The loop does no real work.
