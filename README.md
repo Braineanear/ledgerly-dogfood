@@ -15,6 +15,9 @@ migration run first; see [api/README.md](api/README.md). Neither service is
 provisioned by this repository, and the worker scaffold does not require
 either one.
 
+The web app reaches the API through a development-only proxy; see
+[web/README.md](web/README.md#reaching-the-api).
+
 ## Local setup
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the Python editable-install, pnpm,

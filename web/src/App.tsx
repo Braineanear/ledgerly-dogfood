@@ -1,8 +1,10 @@
+import ProductsPage from './ProductsPage'
+
 function App() {
   return (
     <main>
       <h1>Ledgerly</h1>
-      <p>The web application scaffold is ready for future work.</p>
+      <ProductsPage />
     </main>
   )
 }
