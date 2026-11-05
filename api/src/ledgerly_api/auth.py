@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     api_token: str
     database_url: str
     redis_url: str
+    admin_key: str = ""
 
 
 @lru_cache

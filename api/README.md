@@ -59,6 +59,22 @@ curl -H "Authorization: Bearer $API_TOKEN" http://localhost:8000/tenants/1
 A missing or wrong token returns 401 `application/problem+json` with a
 `WWW-Authenticate: Bearer` header.
 
+## Admin stats
+
+`ADMIN_KEY` is required to enable `GET /admin/stats`. Send it as the
+`X-Admin-Key` header:
+
+```sh
+curl -H "X-Admin-Key: $ADMIN_KEY" http://localhost:8000/admin/stats
+```
+
+If `ADMIN_KEY` is unset or empty, the route fails closed: every request is
+rejected with 401, even with an empty header. A missing or wrong header also
+returns 401 `application/problem+json`, without a `WWW-Authenticate` header.
+
+Compose passes `ADMIN_KEY` to the api service from the environment or `.env`.
+`.env.example` holds a placeholder; set your own value and never commit it.
+
 ## Database
 
 The API reads the `DATABASE_URL` environment variable when a request needs a
