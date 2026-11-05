@@ -8,6 +8,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     ForeignKeyConstraint,
+    Index,
     Integer,
     MetaData,
     String,
@@ -84,6 +85,34 @@ class StockLevel(Base):
     product_id: Mapped[int] = mapped_column(Integer)
     warehouse: Mapped[str] = mapped_column(String(64))
     quantity: Mapped[int] = mapped_column(Integer)
+
+
+class StockMovement(Base):
+    """A signed change to the stock of one product in one warehouse."""
+
+    __tablename__ = "stock_movement"
+    __table_args__ = (
+        # Keeps the row's tenant equal to its product's tenant.
+        ForeignKeyConstraint(
+            ["tenant_id", "product_id"],
+            ["product.tenant_id", "product.id"],
+        ),
+        Index(
+            "ix_stock_movement_tenant_product_warehouse",
+            "tenant_id",
+            "product_id",
+            "warehouse",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(Integer)
+    product_id: Mapped[int] = mapped_column(Integer)
+    warehouse: Mapped[str] = mapped_column(String(64))
+    delta: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
 
 class Order(Base):

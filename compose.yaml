@@ -62,6 +62,13 @@ services:
     build:
       context: .
       dockerfile: worker/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-}:${POSTGRES_PASSWORD_URLENCODED:-}@postgres:5432/${POSTGRES_DB:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     restart: unless-stopped
 
   web:
