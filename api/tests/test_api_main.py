@@ -37,6 +37,23 @@ def test_health_returns_ok() -> None:
     assert response.json() == {"status": "ok"}
 
 
+def test_ping_returns_pong() -> None:
+    """The ping route reports pong."""
+    with TestClient(create_app()) as client:
+        response = client.get("/ping")
+
+    assert response.status_code == 200
+    assert response.json() == {"pong": True}
+
+
+def test_ping_disallows_post() -> None:
+    """POST on /ping returns 405 Method Not Allowed."""
+    with TestClient(create_app()) as client:
+        response = client.post("/ping")
+
+    assert response.status_code == 405
+
+
 def test_health_version_uses_env_sha(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -70,6 +70,10 @@ def create_app() -> FastAPI:
     def package_version() -> dict[str, str]:
         return {"version": resolve_package_version()}
 
+    @application.get("/ping")
+    def ping() -> dict[str, bool]:
+        return {"pong": True}
+
     return application
 
 
