@@ -2,7 +2,7 @@ PYTHON ?= .venv/bin/python
 PNPM ?= pnpm
 TERRAFORM ?= terraform
 
-.PHONY: test lint build verify infra-validate api-dev worker-dev web-dev dev seed migrate
+.PHONY: test lint build verify infra-validate api-dev worker-dev web-dev dev seed migrate recompute-stock
 
 test:
 	$(PYTHON) -m pytest shared/tests api/tests worker/tests
@@ -36,6 +36,9 @@ migrate:
 
 worker-dev:
 	$(PYTHON) -m ledgerly_worker.main
+
+recompute-stock:
+	$(PYTHON) -m ledgerly_worker.recompute
 
 web-dev:
 	$(PNPM) --dir web dev

@@ -57,6 +57,35 @@ Variables use the `${VAR:-}` form, so `docker compose config` renders without
 a `.env`, but real values must be set before `up`. The postgres and redis
 images are pinned by digest, and `renovate.json` can keep the digests updated.
 
+## Recomputing stock levels
+
+The worker can rebuild every `StockLevel` quantity from the
+`stock_movement` table. Run it with one of:
+
+```sh
+DATABASE_URL=... make recompute-stock
+DATABASE_URL=... python -m ledgerly_worker.recompute [--tenant-id ID]
+docker compose run worker python -m ledgerly_worker.recompute
+```
+
+`DATABASE_URL` is required; without it the job exits with code 2. The compose
+`worker` service now provides it and waits for postgres and `migrate`.
+`--tenant-id ID` limits the run to one tenant, which is recommended for
+targeted runs because the job locks every product row in scope.
+
+Invariant: after a run, each `StockLevel.quantity` equals the sum of movement
+deltas for its tenant, product and warehouse. The result depends only on the
+movements, so the job is idempotent: a second run changes nothing.
+
+- `StockLevel` rows with no movements are reset to 0, not deleted. Back up or
+  backfill seeded or legacy quantities as movements first.
+- A negative total aborts the whole run with exit code 1 and no changes.
+- Write movements only through `append_stock_movement`, which locks the
+  product row. The recompute locks the same rows, so the two serialize on
+  Postgres. Writers that skip the lock can be missed or lost.
+- SQLite ignores `FOR UPDATE`, so the SQLite tests do not prove this locking.
+  The Postgres test runs only when `TEST_POSTGRES_URL` is set.
+
 ## Automation
 
 The root Makefile exposes these commands:
@@ -69,6 +98,8 @@ The root Makefile exposes these commands:
 - `make seed`: write 2 tenants and 20 products into the database selected by
   `DATABASE_URL`, which must be set. Run the Alembic migration first; see
   [api/README.md](api/README.md#seed-data).
+- `make recompute-stock`: recompute stock levels; see
+  [Recomputing stock levels](#recomputing-stock-levels).
 - `make infra-validate`: format-check, initialize without a backend, and
   validate Terraform configuration.
 - `make verify`: run all repository quality gates.
