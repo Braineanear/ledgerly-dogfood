@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from ledgerly_api.auth import get_settings
-from ledgerly_api.db import DEFAULT_DATABASE_URL, get_database_url, get_session
+from ledgerly_api.db import get_database_url, get_session
 from ledgerly_api.main import create_app
 
 
@@ -105,12 +105,6 @@ def test_get_malformed_id_without_token_is_unauthorized(
 
 def test_tests_are_isolated(client: TestClient) -> None:
     assert client.get("/tenants/1").status_code == 404
-
-
-def test_database_url_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("DATABASE_URL", raising=False)
-
-    assert get_database_url() == DEFAULT_DATABASE_URL == "sqlite:///./ledgerly.db"
 
 
 def test_database_url_reads_environment(monkeypatch: pytest.MonkeyPatch) -> None:

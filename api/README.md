@@ -1,8 +1,7 @@
 # Ledgerly API
 
-`ledgerly-api` is the FastAPI application for Ledgerly. It uses a SQLite
-database (see [Database](#database)) and does not connect to queues or
-external services. It exposes two health endpoints:
+`ledgerly-api` is the FastAPI application for Ledgerly. It needs a database
+(see [Database](#database)) and Redis. It exposes two health endpoints:
 
 - `GET /health` returns `{"status": "ok"}`.
 - `GET /health/version` returns `{"sha": "<git sha>"}`.
@@ -33,16 +32,21 @@ make api-dev
 ```
 
 This runs Uvicorn with the `ledgerly_api.main:app` import path and reload
-enabled. `API_TOKEN` must be set (see [Authentication](#authentication)):
+enabled. `DATABASE_URL` and `REDIS_URL` are required and have no defaults. If
+either is missing, startup exits with a one-line error naming the missing
+variable, for example `Missing required environment variable(s): REDIS_URL`.
+`API_TOKEN` is unchanged (see [Authentication](#authentication)):
 
 ```sh
+export DATABASE_URL=sqlite:///./ledgerly.db
+export REDIS_URL=redis://localhost:6379/0
 API_TOKEN=change-me make api-dev
 ```
 
 ## Authentication
 
-`API_TOKEN` is required and has no default. If it is unset or empty, every
-`/tenants` request is rejected with 401.
+`API_TOKEN` is required and has no default. If it is unset or empty, the API
+still starts, but every `/tenants` request is rejected with 401.
 
 `GET /health` and `GET /health/version` are public. All `/tenants` endpoints
 need an `Authorization: Bearer <token>` header:
@@ -57,8 +61,9 @@ A missing or wrong token returns 401 `application/problem+json` with a
 ## Database
 
 The API reads the `DATABASE_URL` environment variable when a request needs a
-database. It defaults to `sqlite:///./ledgerly.db`, a file relative to the
-directory the API is started from. A session is opened per request and closed
+database. It is required and has no default; for SQLite, a relative file URL
+such as `sqlite:///./ledgerly.db` is relative to the directory the API is
+started from. A session is opened per request and closed
 afterwards. The API does not create tables, so run the Alembic migration first,
 from the same directory you start the API from:
 
@@ -67,9 +72,8 @@ DATABASE_URL=sqlite:///./ledgerly.db python -m alembic -c shared/alembic.ini upg
 ```
 
 Adjust the `-c` path to point at `shared/alembic.ini` from your working
-directory. The fallback URL in `alembic.ini` is `sqlite:///ledgerly.db`; setting
-`DATABASE_URL` explicitly makes the migration create the same file the API
-opens. Use the same `DATABASE_URL` for both.
+directory. Always set `DATABASE_URL` explicitly when running the migration so
+it creates the same file the API opens. Use the same `DATABASE_URL` for both.
 
 ## Seed data
 
@@ -80,9 +84,8 @@ products (10 per tenant):
 DATABASE_URL=sqlite:///./ledgerly.db make seed
 ```
 
-`DATABASE_URL` selects the target database and defaults to
-`sqlite:///./ledgerly.db`. Use the same value as for the migration. The seed
-only runs when the `tenant` table is empty. It exits nonzero and writes
+`DATABASE_URL` selects the target database and must be set. Use the same value as for the
+migration. The seed only runs when the `tenant` table is empty. It exits nonzero and writes
 nothing in these cases:
 
 - exit code 1: the tenant table already has rows.

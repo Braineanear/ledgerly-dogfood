@@ -9,11 +9,11 @@ stage. The repository is a monorepo for the following components:
 - `web/`: TypeScript React application built with Vite and managed with pnpm.
 - `infra/`: Terraform configuration for Google Cloud.
 
-The API uses SQLite through `DATABASE_URL` (default `sqlite:///./ledgerly.db`)
-and needs the Alembic migration run first; see [api/README.md](api/README.md).
-PostgreSQL and Redis are planned dependencies for future application work. They
-are not provisioned by this repository, and the worker scaffold does not
-require either service.
+The API requires `DATABASE_URL` and `REDIS_URL`, with no defaults, and exits at
+startup with a one-line error if either is missing. It needs the Alembic
+migration run first; see [api/README.md](api/README.md). Neither service is
+provisioned by this repository, and the worker scaffold does not require
+either one.
 
 ## Local setup
 
@@ -46,7 +46,7 @@ The root Makefile exposes these commands:
 - `make lint`: run Python and web linters.
 - `make build`: build Python packages and the web application.
 - `make seed`: write 2 tenants and 20 products into the database selected by
-  `DATABASE_URL`. Run the Alembic migration first; see
+  `DATABASE_URL`, which must be set. Run the Alembic migration first; see
   [api/README.md](api/README.md#seed-data).
 - `make infra-validate`: format-check, initialize without a backend, and
   validate Terraform configuration.

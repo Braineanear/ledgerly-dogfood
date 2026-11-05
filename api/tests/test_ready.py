@@ -22,11 +22,19 @@ SECRET = "postgresql://ledger:hunter2@db.internal/ledgerly"
 def clean_state(
     monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> Iterator[None]:
-    """Use a temporary sqlite database and no Redis, with no stuck probe."""
+    """Use a temporary sqlite database and a dummy Redis URL."""
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'ready.db'}")
-    monkeypatch.delenv("REDIS_URL", raising=False)
+    monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
     monkeypatch.setattr(ready, "_inflight", None)
     yield
+
+
+@pytest.fixture
+def stub_redis(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Replace the Redis probe with a recorder that always passes."""
+    seen: list[str] = []
+    monkeypatch.setattr(ready, "check_redis", seen.append)
+    return seen
 
 
 def _assert_problem(response, dependency: str) -> None:
@@ -39,6 +47,7 @@ def _assert_problem(response, dependency: str) -> None:
     assert body["dependency"] == dependency
 
 
+@pytest.mark.usefixtures("stub_redis")
 @pytest.mark.parametrize("make_app", [create_app, lambda: app])
 def test_ready_returns_200_when_database_answers(make_app) -> None:
     with TestClient(make_app()) as client:
@@ -48,6 +57,7 @@ def test_ready_returns_200_when_database_answers(make_app) -> None:
     assert response.json() == {"status": "ready"}
 
 
+@pytest.mark.usefixtures("stub_redis")
 def test_ready_names_failing_database_without_leaking_secrets(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -64,6 +74,7 @@ def test_ready_names_failing_database_without_leaking_secrets(
     assert "db.internal" not in response.text
 
 
+@pytest.mark.usefixtures("stub_redis")
 def test_blocked_database_times_out_and_bounds_threads(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -128,14 +139,11 @@ def test_redis_passing_returns_200(monkeypatch: pytest.MonkeyPatch) -> None:
     assert seen == ["redis://localhost:6379"]
 
 
-def test_redis_not_checked_without_url(monkeypatch: pytest.MonkeyPatch) -> None:
-    def fail(url: str) -> None:
-        raise AssertionError("redis must not be contacted")
-
-    monkeypatch.setattr(ready, "check_redis", fail)
-
+def test_redis_is_always_probed(stub_redis: list[str]) -> None:
     with TestClient(create_app()) as client:
         assert client.get("/ready").status_code == 200
+
+    assert stub_redis == ["redis://localhost:6379/0"]
 
 
 class FakeRedis:
@@ -478,6 +486,7 @@ def test_probe_engine_sets_postgres_connect_timeout(
     assert disposed == [True]
 
 
+@pytest.mark.usefixtures("stub_redis")
 def test_unreachable_database_returns_503_quickly(
     monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:

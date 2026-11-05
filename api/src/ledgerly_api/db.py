@@ -1,18 +1,17 @@
 """Database engine and per-request session handling."""
 
-import os
 from collections.abc import Iterator
 from functools import cache
 
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session
 
-DEFAULT_DATABASE_URL = "sqlite:///./ledgerly.db"
+from ledgerly_api.auth import load_url_settings
 
 
 def get_database_url() -> str:
-    """Return DATABASE_URL, read at call time, or the SQLite default."""
-    return os.environ.get("DATABASE_URL") or DEFAULT_DATABASE_URL
+    """Return DATABASE_URL, read at call time; there is no default."""
+    return load_url_settings().database_url
 
 
 @cache

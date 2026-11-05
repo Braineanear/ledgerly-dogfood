@@ -1,8 +1,7 @@
-"""Readiness probe: GET /ready checks the database and, optionally, Redis."""
+"""Readiness probe: GET /ready checks the database and Redis."""
 
 import logging
 import math
-import os
 import socket
 import ssl
 import threading
@@ -14,6 +13,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import NullPool
 
+from ledgerly_api.auth import load_url_settings
 from ledgerly_api.db import get_database_url
 from ledgerly_api.problems import problem_response
 
@@ -142,10 +142,8 @@ def ready(request: Request) -> JSONResponse:
         check_database()
     except Exception as exc:  # noqa: BLE001 - any probe failure means not ready
         return _unavailable(request, "database", exc)
-    redis_url = os.environ.get("REDIS_URL", "")
-    if redis_url:
-        try:
-            check_redis(redis_url)
-        except Exception as exc:  # noqa: BLE001 - any probe failure means not ready
-            return _unavailable(request, "redis", exc)
+    try:
+        check_redis(load_url_settings().redis_url)
+    except Exception as exc:  # noqa: BLE001 - any probe failure means not ready
+        return _unavailable(request, "redis", exc)
     return JSONResponse({"status": "ready"})
