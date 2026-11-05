@@ -5,6 +5,7 @@
 
 - `GET /health` returns `{"status": "ok"}`.
 - `GET /health/version` returns `{"sha": "<git sha>"}`.
+- `GET /version` returns `{"version": "<package version>"}`.
 
 The sha is resolved once at startup (when the app is created) from the
 `GIT_SHA` environment variable, then from `git rev-parse HEAD`, and otherwise
@@ -48,7 +49,7 @@ API_TOKEN=change-me make api-dev
 `API_TOKEN` is required and has no default. If it is unset or empty, the API
 still starts, but every `/tenants` request is rejected with 401.
 
-`GET /health` and `GET /health/version` are public. All `/tenants` endpoints
+`GET /health`, `GET /health/version` and `GET /version` are public. All `/tenants` endpoints
 need an `Authorization: Bearer <token>` header:
 
 ```sh
