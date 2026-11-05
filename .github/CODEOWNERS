@@ -1,0 +1,5 @@
+# Takes effect for review only when GitHub's code-owner review requirement is enabled.
+/api/ @Braineanear
+/worker/ @Braineanear
+/shared/ @Braineanear
+/web/ @Braineanear

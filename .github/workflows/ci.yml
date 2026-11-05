@@ -1,0 +1,39 @@
+# Lint is left out on purpose; this workflow only runs make test.
+# Actions are pinned to exact release tags.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-python@v5.6.0
+        with:
+          python-version: "3.11"
+      - uses: pnpm/action-setup@v4.1.0
+        with:
+          version: 9
+      - uses: actions/setup-node@v4.4.0
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: Install Python packages
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install -e shared
+          .venv/bin/python -m pip install -e api
+          .venv/bin/python -m pip install -e worker
+          .venv/bin/python -m pip install pytest
+      - name: Install web packages
+        run: pnpm --dir web install --frozen-lockfile
+      - name: Test
+        run: make test

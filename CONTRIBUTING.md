@@ -57,6 +57,46 @@ make verify
 `make infra-validate` runs Terraform initialization with its backend disabled
 and validates configuration only. It does not create infrastructure.
 
+## Dependency updates
+
+Renovate is configured in `renovate.json`. It opens one pull request a week,
+on Monday before 6am UTC, that groups all minor and patch updates under the
+name "minor and patch updates". All package managers Renovate detects are in
+scope.
+
+Major updates are never grouped or automerged. Renovate opens one only after
+a maintainer approves it on the Renovate dependency dashboard.
+
+CI runs only `make test`, so run `make lint` and `make build` locally on the
+grouped pull request before merging it. `.github/` is not covered by
+CODEOWNERS, so a review of `renovate.json` is not enforced.
+
+## Branches and branch protection
+
+Work on short-lived topic branches and open pull requests against the
+default branch.
+
+`.github/CODEOWNERS` assigns `api/`, `worker/`, `shared/`, and `web/` to
+`@Braineanear`. `infra/` and `.github/` are not covered by it.
+
+CI runs a single job, `test`, shown as `CI / test`. It runs only
+`make test`. Lint is not a CI check, so run `make lint` locally before
+opening a pull request.
+
+Maintainers can apply this recommended protection in GitHub:
+
+- Require pull requests before merging.
+- Require the `CI / test` status check.
+- Optionally require code-owner review.
+
+This repository change does not alter any GitHub settings. None of this
+protection is enforced until a maintainer enables it, and CODEOWNERS only
+affects review when code-owner review is required.
+
+GitHub does not let an author approve their own pull request. Requiring
+code-owner review with a sole owner therefore needs a maintainer decision,
+such as a bypass for the owner or a second reviewer.
+
 ## Run components locally
 
 Use separate terminals for each runtime component:
