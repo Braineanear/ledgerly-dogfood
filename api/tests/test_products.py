@@ -12,6 +12,7 @@ from sqlalchemy.pool import StaticPool
 from ledgerly_api.auth import get_settings
 from ledgerly_api.db import get_session
 from ledgerly_api.main import create_app
+from ledgerly_api.products import _decode_cursor, _encode_cursor
 
 PROBLEM = "application/problem+json"
 
@@ -138,3 +139,10 @@ def test_out_of_range_product_id_is_422_problem(
 
     assert response.status_code == 422
     assert response.headers["content-type"].startswith(PROBLEM)
+
+
+def test_cursor_from_other_tenant_decodes_to_none() -> None:
+    cursor = _encode_cursor(1, 5)
+
+    assert _decode_cursor(cursor, 1) == 5
+    assert _decode_cursor(cursor, 2) is None
