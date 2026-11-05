@@ -5,7 +5,6 @@ import subprocess
 
 from fastapi import FastAPI
 
-from ledgerly_api.admin import router as admin_router
 from ledgerly_api.auth import AuthError, auth_error_handler
 from ledgerly_api.logging_config import configure_logging
 from ledgerly_api.problems import register_problem_handlers
@@ -44,7 +43,6 @@ def create_app() -> FastAPI:
     application.include_router(tenants_router)
     application.include_router(products_router)
     application.include_router(ready_router)
-    application.include_router(admin_router)
 
     @application.get("/health")
     def health() -> dict[str, str]:
