@@ -9,6 +9,7 @@ from ledgerly_api.auth import AuthError, auth_error_handler
 from ledgerly_api.logging_config import configure_logging
 from ledgerly_api.problems import register_problem_handlers
 from ledgerly_api.products import router as products_router
+from ledgerly_api.ready import router as ready_router
 from ledgerly_api.request_id import RequestIdMiddleware
 from ledgerly_api.tenants import router as tenants_router
 
@@ -41,6 +42,7 @@ def create_app() -> FastAPI:
     register_problem_handlers(application)
     application.include_router(tenants_router)
     application.include_router(products_router)
+    application.include_router(ready_router)
 
     @application.get("/health")
     def health() -> dict[str, str]:
