@@ -1,4 +1,4 @@
-output "deployment_status" {
-  description = "Indicates that infrastructure deployment is intentionally deferred."
-  value       = "No infrastructure resources are configured."
+output "bucket_name" {
+  description = "Name of the storage bucket."
+  value       = google_storage_bucket.main.name
 }

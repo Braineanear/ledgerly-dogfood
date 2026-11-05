@@ -12,6 +12,11 @@ __pycache__/
 *.py[cod]
 *.tfstate
 *.tfstate.*
+*.tfstate*
+infra/backend.hcl
+infra/terraform.tfvars
+*.tfvars
+*.tfvars.json
 # Build artifacts
 # Local configuration
 # Node

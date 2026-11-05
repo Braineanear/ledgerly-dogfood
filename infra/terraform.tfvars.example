@@ -1,0 +1,4 @@
+# Copy to terraform.tfvars (git-ignored) and replace the placeholders.
+# REPLACE_ME is not a valid GCS bucket name and must be replaced.
+project_id  = "REPLACE_ME"
+bucket_name = "REPLACE_ME"
