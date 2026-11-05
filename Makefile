@@ -2,7 +2,7 @@ PYTHON ?= .venv/bin/python
 PNPM ?= pnpm
 TERRAFORM ?= terraform
 
-.PHONY: test lint build verify infra-validate api-dev worker-dev web-dev dev
+.PHONY: test lint build verify infra-validate api-dev worker-dev web-dev dev seed
 
 test:
 	$(PYTHON) -m pytest shared/tests api/tests worker/tests
@@ -27,6 +27,9 @@ verify: test lint build infra-validate
 
 api-dev:
 	$(PYTHON) -m uvicorn ledgerly_api.main:app --reload
+
+seed:
+	$(PYTHON) -m ledgerly_api.seed
 
 worker-dev:
 	$(PYTHON) -m ledgerly_worker.main

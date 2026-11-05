@@ -54,6 +54,22 @@ curl -H "Authorization: Bearer $API_TOKEN" http://localhost:8000/tenants/1
 A missing or wrong token returns 401 `application/problem+json` with a
 `WWW-Authenticate: Bearer` header.
 
+## Admin stats
+
+`GET /admin/stats` authenticates with an `X-Admin-Key` header:
+
+```sh
+curl -H "X-Admin-Key: dev-secret" http://localhost:8000/admin/stats
+```
+
+A missing or wrong key returns 401 `application/problem+json` with no
+`WWW-Authenticate: Bearer` challenge. A correct key returns 200 with
+`{"status": "ok"}`.
+
+The key is hardcoded as `"dev-secret"` in `ledgerly_api/admin.py`. This is for
+development only and is not a deployable secret-management pattern. Anyone who
+can read the source knows the key.
+
 ## Database
 
 The API reads the `DATABASE_URL` environment variable when a request needs a
@@ -70,6 +86,23 @@ Adjust the `-c` path to point at `shared/alembic.ini` from your working
 directory. The fallback URL in `alembic.ini` is `sqlite:///ledgerly.db`; setting
 `DATABASE_URL` explicitly makes the migration create the same file the API
 opens. Use the same `DATABASE_URL` for both.
+
+## Seed data
+
+After the Alembic migration above, `make seed` writes 2 tenants and 20
+products (10 per tenant):
+
+```sh
+DATABASE_URL=sqlite:///./ledgerly.db make seed
+```
+
+`DATABASE_URL` selects the target database and defaults to
+`sqlite:///./ledgerly.db`. Use the same value as for the migration. The seed
+only runs when the `tenant` table is empty. It exits nonzero and writes
+nothing in these cases:
+
+- exit code 1: the tenant table already has rows.
+- exit code 2: the schema is missing (run the migration first).
 
 ## Dependency licences
 
