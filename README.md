@@ -38,6 +38,24 @@ make web-dev
 `make dev` prints the same guidance and intentionally does not start a process
 supervisor.
 
+## Docker Compose
+
+`compose.yaml` runs `postgres`, `redis`, `migrate`, `api`, `worker` and `web`.
+
+1. Copy `.env.example` to `.env` and fill in the values.
+2. `POSTGRES_PASSWORD` and `POSTGRES_PASSWORD_URLENCODED` must be the same
+   password, the second percent-encoded (`@` is `%40`, `:` is `%3A`, `/` is
+   `%2F`, `#` is `%23`). Compose cannot check this.
+3. Run `docker compose up --build`. Migrations run automatically through the
+   `migrate` service before `api` starts.
+
+The api listens on port 8000 and the web dev server on port 5173. To re-run
+migrations manually, use `docker compose run --rm migrate`.
+
+Variables use the `${VAR:-}` form, so `docker compose config` renders without
+a `.env`, but real values must be set before `up`. The postgres and redis
+images are pinned by digest, and `renovate.json` can keep the digests updated.
+
 ## Automation
 
 The root Makefile exposes these commands:
