@@ -7,6 +7,7 @@ from ledgerly_shared.models import PlaceholderModel
 from ledgerly_shared.money import format_money
 from ledgerly_shared.orm import (
     Base,
+    FeatureFlag,
     Product,
     StockLevel,
     StockMovement,
@@ -23,6 +24,7 @@ from ledgerly_shared.stock import (
 
 __all__ = [
     "Base",
+    "FeatureFlag",
     "PlaceholderModel",
     "Product",
     "StockInvariantError",

@@ -4,6 +4,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -13,6 +14,7 @@ from sqlalchemy import (
     MetaData,
     String,
     UniqueConstraint,
+    false,
     func,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -30,6 +32,17 @@ class Base(DeclarativeBase):
     """Declarative base whose metadata gives every constraint a stable name."""
 
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
+
+
+class FeatureFlag(Base):
+    """A named switch; a flag with no row counts as off."""
+
+    __tablename__ = "feature_flag"
+
+    name: Mapped[str] = mapped_column(String(64), primary_key=True)
+    enabled: Mapped[bool] = mapped_column(
+        Boolean, server_default=false(), default=False
+    )
 
 
 class Tenant(Base):
