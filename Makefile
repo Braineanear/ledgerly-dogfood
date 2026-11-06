@@ -2,7 +2,7 @@ PYTHON ?= .venv/bin/python
 PNPM ?= pnpm
 TERRAFORM ?= terraform
 
-.PHONY: test lint build verify infra-validate api-dev worker-dev web-dev dev seed migrate recompute-stock
+.PHONY: test lint build verify infra-validate api-dev worker-dev web-dev dev seed migrate recompute-stock clean-caches
 
 test:
 	$(PYTHON) -m pytest shared/tests api/tests worker/tests
@@ -24,6 +24,9 @@ infra-validate:
 	$(TERRAFORM) -chdir=infra validate
 
 verify: test lint build infra-validate
+
+clean-caches:
+	rm -rf .pytest_cache .ruff_cache
 
 api-dev:
 	$(PYTHON) -m uvicorn ledgerly_api.main:app --reload
