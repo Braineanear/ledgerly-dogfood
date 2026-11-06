@@ -34,6 +34,7 @@ The library used by both api and worker.
 - `shared/src/ledgerly_shared/orm.py`: ORM table definitions.
 - `shared/src/ledgerly_shared/stock.py`: stock calculations.
 - `shared/src/ledgerly_shared/slug.py`: name slug helper.
+- `shared/src/ledgerly_shared/dedupe.py`: order-preserving dedupe helper.
 
 ## web
 
