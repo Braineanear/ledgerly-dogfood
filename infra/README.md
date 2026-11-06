@@ -30,7 +30,8 @@ covers them.
   private IP and database name.
 - `google_storage_bucket.main`: named by the `bucket_name` variable and placed
   in `region`. It enforces uniform bucket-level access and public access
-  prevention, enables versioning, and does not set `force_destroy`.
+  prevention, enables versioning, and does not set `force_destroy`. A
+  lifecycle rule deletes objects older than 90 days.
 
 Root outputs: `bucket_name`, `cloudsql_connection_name` and
 `cloudsql_private_ip`.
