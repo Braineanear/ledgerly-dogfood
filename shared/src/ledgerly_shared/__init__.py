@@ -1,5 +1,6 @@
 """Shared types for Ledgerly services."""
 
+from ledgerly_shared.clamp import clamp
 from ledgerly_shared.dedupe import dedupe
 from ledgerly_shared.flatten import flatten
 from ledgerly_shared.models import PlaceholderModel
@@ -31,6 +32,7 @@ __all__ = [
     "_lock_products",
     "_lock_tenants",
     "append_stock_movement",
+    "clamp",
     "dedupe",
     "flatten",
     "format_money",
