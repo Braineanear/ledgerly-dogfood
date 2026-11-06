@@ -1,23 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+import { formatPrice } from './price'
 import { fetchProducts } from './products'
-import type { Product, ProductPage } from './products'
-
-function formatPrice(product: Product): string {
-  if (product.price === null || product.currency === null) {
-    return '-'
-  }
-  try {
-    const formatter = new Intl.NumberFormat('en', {
-      style: 'currency',
-      currency: product.currency,
-    })
-    const digits = formatter.resolvedOptions().maximumFractionDigits ?? 2
-    return formatter.format(product.price / 10 ** digits)
-  } catch {
-    return `${product.price} ${product.currency}`
-  }
-}
+import type { ProductPage } from './products'
 
 function ProductsPage() {
   const [tenantId, setTenantId] = useState('')
@@ -76,11 +61,17 @@ function ProductsPage() {
       {page && page.items.length === 0 && <p>No products found.</p>}
       {page && page.items.length > 0 && (
         <ul>
-          {page.items.map((product) => (
-            <li key={product.id}>
-              {product.sku} - {product.name} - {formatPrice(product)}
-            </li>
-          ))}
+          {page.items.map((product) => {
+            const price =
+              product.price === null || product.currency === null
+                ? '-'
+                : formatPrice(product.price, product.currency)
+            return (
+              <li key={product.id}>
+                {product.sku} - {product.name} - {price}
+              </li>
+            )
+          })}
         </ul>
       )}
       {page?.next_cursor && (
