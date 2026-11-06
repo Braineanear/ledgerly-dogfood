@@ -1,12 +1,7 @@
-import ProductsPage from './ProductsPage'
+import HomePage from './HomePage'
 
 function App() {
-  return (
-    <main>
-      <h1>Ledgerly</h1>
-      <ProductsPage />
-    </main>
-  )
+  return <HomePage />
 }
 
 export default App
