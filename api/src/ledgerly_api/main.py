@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+from datetime import UTC, datetime
 from importlib.metadata import PackageNotFoundError, version
 from time import monotonic
 
@@ -85,6 +86,10 @@ def create_app() -> FastAPI:
     @application.get("/uptime")
     def uptime() -> dict[str, float]:
         return {"uptime_seconds": max(0.0, monotonic() - started)}
+
+    @application.get("/time")
+    def current_time() -> dict[str, str]:
+        return {"utc": datetime.now(UTC).isoformat()}
 
     return application
 

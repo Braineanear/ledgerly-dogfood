@@ -1,6 +1,7 @@
 """Smoke tests for the FastAPI application."""
 
 import subprocess
+from datetime import UTC, datetime, timedelta
 from importlib import metadata
 
 import pytest
@@ -453,3 +454,96 @@ def test_uptime_response_exact_keys(
     assert list(data.keys()) == ["uptime_seconds"]
 
 
+def test_time_returns_current_utc_timestamp() -> None:
+    """The time route returns an aware UTC ISO 8601 timestamp."""
+    before = datetime.now(UTC)
+    with TestClient(create_app()) as client:
+        response = client.get("/time")
+    after = datetime.now(UTC)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert list(data.keys()) == ["utc"]
+    parsed = datetime.fromisoformat(data["utc"])
+    assert parsed.utcoffset() == timedelta(0)
+    assert before <= parsed <= after
+
+
+@pytest.mark.parametrize("method", ["post", "put", "delete", "patch"])
+def test_time_disallows_non_get_methods(method: str) -> None:
+    """Non-GET HTTP methods on /time return 405 Method Not Allowed."""
+    with TestClient(create_app()) as client:
+        response = getattr(client, method)("/time")
+
+    assert response.status_code == 405
+
+
+def test_time_is_public_with_bad_auth_header() -> None:
+    """The time route ignores an invalid authorization header."""
+    with TestClient(create_app()) as client:
+        response = client.get(
+            "/time", headers={"Authorization": "Bearer invalid-token"}
+        )
+
+    assert response.status_code == 200
+
+
+def test_time_response_includes_request_id_header() -> None:
+    """The time response includes the x-request-id middleware header."""
+    with TestClient(create_app()) as client:
+        response = client.get("/time")
+
+    assert response.status_code == 200
+    assert "x-request-id" in response.headers
+
+
+def test_time_returns_json_content_type() -> None:
+    """The time route returns application/json content-type header."""
+    with TestClient(create_app()) as client:
+        response = client.get("/time")
+
+    assert response.status_code == 200
+    assert "application/json" in response.headers["content-type"]
+
+
+def test_time_ignores_query_parameters() -> None:
+    """The time endpoint ignores arbitrary query parameters."""
+    with TestClient(create_app()) as client:
+        response = client.get("/time?foo=bar&format=iso")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert list(data.keys()) == ["utc"]
+
+
+def test_time_module_app_instance() -> None:
+    """The module-level app instance responds to GET /time."""
+    with TestClient(app) as client:
+        response = client.get("/time")
+
+    assert response.status_code == 200
+    assert "utc" in response.json()
+
+
+def test_time_does_not_consume_monotonic_clock(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The /time route uses wall-clock datetime and does not consume monotonic clock."""
+    _fake_clock(monkeypatch, [100.0, 105.0])
+
+    with TestClient(create_app()) as client:
+        time_res = client.get("/time")
+        uptime_res = client.get("/uptime")
+
+    assert time_res.status_code == 200
+    assert uptime_res.json() == {"uptime_seconds": 5.0}
+
+
+def test_time_iso8601_string_format() -> None:
+    """The returned timestamp string follows ISO 8601 representation for UTC."""
+    with TestClient(create_app()) as client:
+        response = client.get("/time")
+
+    utc_str = response.json()["utc"]
+    assert "T" in utc_str
+    assert utc_str.endswith(("+00:00", "Z"))
