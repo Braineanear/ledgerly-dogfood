@@ -5,6 +5,7 @@ leading "-". The currency string is used as given.
 """
 
 
+# Format integer cents as a signed "major.minor CURRENCY" string.
 def format_money(cents: int, currency: str) -> str:
     """Format an amount in cents as "12.50 USD"."""
     sign = "-" if cents < 0 else ""
