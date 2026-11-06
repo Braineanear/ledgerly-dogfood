@@ -58,4 +58,14 @@ resource "google_storage_bucket" "main" {
   versioning {
     enabled = true
   }
+
+  lifecycle_rule {
+    action {
+      type = "Delete"
+    }
+
+    condition {
+      age = 90
+    }
+  }
 }
