@@ -1,4 +1,4 @@
-"""RFC 9457 problem details responses and the exception handlers."""
+"""RFC 9457 problem details responses and the exception handlers. Part of Ledgerly."""
 
 import logging
 from http import HTTPStatus

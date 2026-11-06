@@ -1,4 +1,4 @@
-"""Bearer-token authentication for the tenant routes."""
+"""Bearer-token authentication for the tenant routes. Part of Ledgerly."""
 
 import os
 import secrets

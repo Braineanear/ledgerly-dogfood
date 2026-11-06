@@ -1,4 +1,4 @@
-"""Admin routes guarded by the X-Admin-Key header."""
+"""Admin routes guarded by the X-Admin-Key header. Part of Ledgerly."""
 
 import secrets
 from typing import Annotated

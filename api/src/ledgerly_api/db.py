@@ -1,4 +1,4 @@
-"""Database engine and per-request session handling."""
+"""Database engine and per-request session handling. Part of Ledgerly."""
 
 from collections.abc import Iterator
 from functools import cache
