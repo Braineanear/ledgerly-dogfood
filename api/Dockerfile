@@ -11,6 +11,9 @@ COPY shared /app/shared
 COPY api /app/api
 RUN pip install /app/shared /app/api
 
+ARG GIT_SHA=unknown
+ENV GIT_SHA=$GIT_SHA
+
 EXPOSE 8000
 
 CMD ["python", "-m", "uvicorn", "ledgerly_api.main:app", "--host", "0.0.0.0", "--port", "8000"]

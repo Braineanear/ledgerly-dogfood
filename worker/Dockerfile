@@ -10,4 +10,7 @@ COPY shared /app/shared
 COPY worker /app/worker
 RUN pip install /app/shared /app/worker
 
+ARG GIT_SHA=unknown
+ENV GIT_SHA=$GIT_SHA
+
 CMD ["python", "-m", "ledgerly_worker.main"]
