@@ -1,6 +1,7 @@
 """Shared types for Ledgerly services."""
 
 from ledgerly_shared.dedupe import dedupe
+from ledgerly_shared.flatten import flatten
 from ledgerly_shared.models import PlaceholderModel
 from ledgerly_shared.money import format_money
 from ledgerly_shared.orm import (
@@ -31,6 +32,7 @@ __all__ = [
     "_lock_tenants",
     "append_stock_movement",
     "dedupe",
+    "flatten",
     "format_money",
     "recompute_stock_levels",
     "slugify",
