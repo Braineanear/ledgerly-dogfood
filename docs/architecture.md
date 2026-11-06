@@ -33,6 +33,7 @@ The library used by both api and worker.
 - `shared/src/ledgerly_shared/models.py`: shared data models.
 - `shared/src/ledgerly_shared/orm.py`: ORM table definitions.
 - `shared/src/ledgerly_shared/stock.py`: stock calculations.
+- `shared/src/ledgerly_shared/slug.py`: name slug helper.
 
 ## web
 

@@ -8,6 +8,7 @@ from ledgerly_shared.orm import (
     StockMovement,
     Tenant,
 )
+from ledgerly_shared.slug import slugify
 from ledgerly_shared.stock import (
     StockInvariantError,
     _lock_products,
@@ -28,4 +29,5 @@ __all__ = [
     "_lock_tenants",
     "append_stock_movement",
     "recompute_stock_levels",
+    "slugify",
 ]
