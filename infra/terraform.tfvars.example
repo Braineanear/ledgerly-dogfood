@@ -2,3 +2,14 @@
 # REPLACE_ME is not a valid GCS bucket name and must be replaced.
 project_id  = "REPLACE_ME"
 bucket_name = "REPLACE_ME"
+
+# Network and Cloud SQL (non-secret; the values shown are the defaults).
+# The subnet must not overlap other ranges in the VPC.
+subnet_cidr = "10.10.0.0/24"
+db_tier     = "db-custom-1-3840"
+db_name     = "ledgerly"
+db_user     = "ledgerly"
+
+# db_password is required and is deliberately not set here. Supply it via
+# the environment instead of a file:
+#   export TF_VAR_db_password='...'

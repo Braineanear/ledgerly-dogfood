@@ -19,7 +19,7 @@ build:
 	$(PNPM) --dir web build
 
 infra-validate:
-	$(TERRAFORM) -chdir=infra fmt -check
+	$(TERRAFORM) -chdir=infra fmt -check -recursive
 	$(TERRAFORM) -chdir=infra init -backend=false
 	$(TERRAFORM) -chdir=infra validate
 
