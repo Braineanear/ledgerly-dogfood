@@ -1,6 +1,7 @@
 """Shared types for Ledgerly services."""
 
 from ledgerly_shared.models import PlaceholderModel
+from ledgerly_shared.money import format_money
 from ledgerly_shared.orm import (
     Base,
     Product,
@@ -28,6 +29,7 @@ __all__ = [
     "_lock_products",
     "_lock_tenants",
     "append_stock_movement",
+    "format_money",
     "recompute_stock_levels",
     "slugify",
 ]

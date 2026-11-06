@@ -17,6 +17,7 @@ logger = logging.getLogger("ledgerly_api")
 access_logger = logging.getLogger("ledgerly_api.access")
 
 
+# Use the first x-request-id header if valid, else a new uuid4 hex id.
 def _incoming_request_id(scope: Scope) -> str:
     """Return the supplied id if it is valid, else a new uuid4 hex."""
     for name, value in scope.get("headers", []):
