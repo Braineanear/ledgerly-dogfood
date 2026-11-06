@@ -54,6 +54,62 @@ def test_ping_disallows_post() -> None:
     assert response.status_code == 405
 
 
+def test_hello_returns_world() -> None:
+    """The hello route greets the world."""
+    with TestClient(create_app()) as client:
+        response = client.get("/hello")
+
+    assert response.status_code == 200
+    assert response.json() == {"hello": "world"}
+
+
+@pytest.mark.parametrize("method", ["post", "put", "delete", "patch"])
+def test_hello_disallows_non_get_methods(method: str) -> None:
+    """Non-GET HTTP methods on /hello return 405 Method Not Allowed."""
+    with TestClient(create_app()) as client:
+        response = getattr(client, method)("/hello")
+
+    assert response.status_code == 405
+
+
+def test_hello_is_registered_on_module_application() -> None:
+    """The ASGI application instance exposes the hello route."""
+    with TestClient(app) as client:
+        response = client.get("/hello")
+
+    assert response.status_code == 200
+    assert response.json() == {"hello": "world"}
+
+
+def test_hello_ignores_query_parameters() -> None:
+    """Query parameters do not change the hello response."""
+    with TestClient(create_app()) as client:
+        response = client.get("/hello?name=ledgerly&debug=true")
+
+    assert response.status_code == 200
+    assert response.json() == {"hello": "world"}
+
+
+def test_hello_returns_json_content_type() -> None:
+    """The hello route returns an application/json response."""
+    with TestClient(create_app()) as client:
+        response = client.get("/hello")
+
+    assert response.status_code == 200
+    assert "application/json" in response.headers["content-type"]
+
+
+def test_hello_is_public_with_an_authorization_header() -> None:
+    """The public hello route does not require authorization."""
+    with TestClient(create_app()) as client:
+        response = client.get(
+            "/hello", headers={"Authorization": "Bearer invalid-token"}
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {"hello": "world"}
+
+
 def test_health_version_uses_env_sha(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

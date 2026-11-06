@@ -78,6 +78,10 @@ def create_app() -> FastAPI:
     def ping() -> dict[str, bool]:
         return {"pong": True}
 
+    @application.get("/hello")
+    def hello() -> dict[str, str]:
+        return {"hello": "world"}
+
     @application.get("/uptime")
     def uptime() -> dict[str, float]:
         return {"uptime_seconds": max(0.0, monotonic() - started)}
