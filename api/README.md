@@ -160,6 +160,31 @@ returns 401 `application/problem+json`, without a `WWW-Authenticate` header.
 Compose passes `ADMIN_KEY` to the api service from the environment or `.env`.
 `.env.example` holds a placeholder; set your own value and never commit it.
 
+## Roles and members
+
+Each tenant has members with the role `admin` or `member`. Migration 0010
+(`make migrate`) adds the `app_user` and `tenant_membership` tables.
+
+Identity is a per-user secret token sent in the `X-User-Token` header, in
+addition to the bearer token. Only the SHA-256 hash is stored. The API never
+reads a client-supplied user id. A missing or unknown user token returns 401.
+A caller who is not a member, or has the wrong role, gets 403
+`application/problem+json`. Tokens have no rotation or expiry yet.
+
+- `POST /admin/users` (`X-Admin-Key`) with `{"name": "..."}` creates a user
+  and returns `{id, name, token}`. The token is shown only once.
+- `PUT /admin/tenants/{tenant_id}/members/{user_id}` (`X-Admin-Key`) with
+  `{"role": "admin"}` or `{"role": "member"}` sets a membership. This is how
+  existing tenants get their first admin. An unknown tenant or user returns 404.
+- `GET /tenants/{tenant_id}/members` lists members; admin and member.
+- `PUT /tenants/{tenant_id}/members/{user_id}` sets a role; admin only.
+- `POST /tenants` with a valid `X-User-Token` makes that user the admin of
+  the new tenant. An unknown token returns 401. Without the header it
+  behaves as before.
+
+The existing tenant, product, movement and flag routes are not role-gated;
+they need only the bearer token.
+
 ## Database
 
 The API reads the `DATABASE_URL` environment variable when a request needs a

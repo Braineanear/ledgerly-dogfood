@@ -148,6 +148,34 @@ class IdempotencyKey(Base):
     )
 
 
+class AppUser(Base):
+    """A person who calls the API; only the hash of their token is kept."""
+
+    __tablename__ = "app_user"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(255))
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), default=func.now()
+    )
+
+
+class TenantMembership(Base):
+    """The role one user holds in one tenant."""
+
+    __tablename__ = "tenant_membership"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "user_id"),
+        CheckConstraint("role IN ('admin', 'member')", name="role_valid"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenant.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("app_user.id"))
+    role: Mapped[str] = mapped_column(String(16))
+
+
 class Order(Base):
     """A quantity of one product ordered at a point in time."""
 

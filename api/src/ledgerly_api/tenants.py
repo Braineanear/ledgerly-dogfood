@@ -3,12 +3,13 @@
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
-from ledgerly_shared.orm import Tenant
+from fastapi import APIRouter, Depends, Header, Request
+from ledgerly_shared.orm import AppUser, Tenant, TenantMembership
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ledgerly_api.auth import require_token
+from ledgerly_api.auth import AuthError, require_token
 from ledgerly_api.db import get_session
 from ledgerly_api.problems import problem_response
 
@@ -60,9 +61,32 @@ class Problem(BaseModel):
         }
     },
 )
-def create_tenant(body: TenantCreate, session: SessionDep) -> TenantCreated:
+def create_tenant(
+    body: TenantCreate,
+    session: SessionDep,
+    x_user_token: Annotated[str | None, Header()] = None,
+) -> TenantCreated:
+    # Imported here because roles.py imports Problem from this module.
+    from ledgerly_api.roles import hash_token
+
+    owner = None
+    if x_user_token is not None:
+        owner = session.scalar(
+            select(AppUser).where(
+                AppUser.token_hash == hash_token(x_user_token)
+            )
+        )
+        if owner is None:
+            raise AuthError("Invalid user token.")
     tenant = Tenant(name=body.name)
     session.add(tenant)
+    if owner is not None:
+        session.flush()
+        session.add(
+            TenantMembership(
+                tenant_id=tenant.id, user_id=owner.id, role="admin"
+            )
+        )
     session.commit()
     return TenantCreated(id=tenant.id)
 
