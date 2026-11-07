@@ -3,8 +3,10 @@ import type { FormEvent } from 'react'
 import { formatPrice } from './price'
 import { fetchProducts } from './products'
 import type { ProductPage } from './products'
+import { useI18n } from './i18n/context'
 
 function ProductsPage() {
+  const { locale, t } = useI18n()
   const [tenantId, setTenantId] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -18,7 +20,7 @@ function ProductsPage() {
     const id = tenantId.trim()
     if (!id) {
       setPage(null)
-      setError('Enter a tenant id.')
+      setError(t('enterTenantId'))
       return
     }
     controller.current?.abort()
@@ -34,7 +36,7 @@ function ProductsPage() {
       }
     } catch (err) {
       if (controller.current === current) {
-        setError(err instanceof Error ? err.message : 'Request failed')
+        setError(err instanceof Error ? err.message : t('requestFailed'))
       }
     } finally {
       if (controller.current === current) {
@@ -45,38 +47,38 @@ function ProductsPage() {
 
   return (
     <section>
-      <h2>Products</h2>
+      <h2>{t('products')}</h2>
       <form onSubmit={onSubmit}>
         <label>
-          Tenant id
+          {t('tenantId')}
           <input
             value={tenantId}
             onChange={(event) => setTenantId(event.target.value)}
           />
         </label>
-        <button type="submit">Load</button>
+        <button type="submit">{t('load')}</button>
       </form>
-      {loading && <p role="status">Loading products...</p>}
+      {loading && <p role="status">{t('loading')}</p>}
       {error && <p role="alert">{error}</p>}
-      {page && page.items.length === 0 && <p>No products found.</p>}
+      {page && page.items.length === 0 && <p>{t('noProducts')}</p>}
       {page && page.items.length > 0 && (
         <ul>
           {page.items.map((product) => {
             const price =
               product.price === null || product.currency === null
                 ? '-'
-                : formatPrice(product.price, product.currency)
+                : formatPrice(product.price, product.currency, locale)
             return (
               <li key={product.id}>
-                {product.sku} - {product.name} - {price}
+                <bdi dir="ltr">
+                  {product.sku} - {product.name} - {price}
+                </bdi>
               </li>
             )
           })}
         </ul>
       )}
-      {page?.next_cursor && (
-        <p>Only the first page of products is shown.</p>
-      )}
+      {page?.next_cursor && <p>{t('firstPageOnly')}</p>}
     </section>
   )
 }
