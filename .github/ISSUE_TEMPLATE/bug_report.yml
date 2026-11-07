@@ -1,0 +1,72 @@
+name: Bug report
+description: Report something that is not working as expected
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug.
+        Do not paste secrets, tokens, API keys or passwords into this
+        issue. Redact them from logs and configuration first.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of Ledgerly is affected?
+      options:
+        - api
+        - worker
+        - shared
+        - web
+        - infra
+        - other
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the problem you saw.
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behaviour
+    attributes:
+      label: Expected behaviour
+      description: Describe what you expected to happen instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Reproduction steps
+      description: List the steps needed to reproduce the problem.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or git SHA
+      description: The release version or commit you were running.
+    validations:
+      required: false
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, Python and Node versions, deployment type.
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant log output, with secrets removed.
+      render: shell
+    validations:
+      required: false
