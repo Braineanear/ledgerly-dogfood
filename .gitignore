@@ -31,3 +31,4 @@ htmlcov/
 node_modules/
 override.tf
 override.tf.json
+sbom-*.spdx.json

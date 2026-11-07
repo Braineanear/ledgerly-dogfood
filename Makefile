@@ -1,8 +1,11 @@
 PYTHON ?= .venv/bin/python
 PNPM ?= pnpm
 TERRAFORM ?= terraform
+SYFT ?= syft
+DOCKER ?= docker
+API_IMAGE ?= ledgerly-api:sbom
 
-.PHONY: test lint build verify infra-validate api-dev worker-dev web-dev dev seed migrate recompute-stock clean-caches
+.PHONY: test lint build verify sbom infra-validate api-dev worker-dev web-dev dev seed migrate recompute-stock clean-caches
 
 test:
 	$(PYTHON) -m pytest shared/tests api/tests worker/tests
@@ -24,6 +27,17 @@ infra-validate:
 	$(TERRAFORM) -chdir=infra validate
 
 verify: test lint build infra-validate
+
+sbom:
+	@if ! command -v $(SYFT) >/dev/null 2>&1; then \
+		echo 'syft not installed; skipping sbom (see https://github.com/anchore/syft)'; \
+	elif ! command -v $(DOCKER) >/dev/null 2>&1; then \
+		echo 'docker not installed; skipping sbom'; \
+	else \
+		set -e; \
+		$(DOCKER) build -f api/Dockerfile -t $(API_IMAGE) .; \
+		$(SYFT) scan $(API_IMAGE) -o spdx-json=sbom-api.spdx.json; \
+	fi
 
 clean-caches:
 	rm -rf .pytest_cache .ruff_cache
