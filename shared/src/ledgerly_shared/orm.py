@@ -78,6 +78,8 @@ class Product(Base):
     # always requires both on create.
     price_minor: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
+    # Optional free text about the product.
+    notes: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
 
 class StockLevel(Base):
