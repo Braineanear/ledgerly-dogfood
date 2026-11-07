@@ -1,4 +1,5 @@
-# Lint is left out on purpose; this workflow only runs make test.
+# Lint is left out on purpose; the test job only runs make test.
+# A separate commitlint job checks commit messages on pull requests.
 # Actions are pinned to exact release tags.
 name: CI
 
@@ -37,3 +38,24 @@ jobs:
         run: pnpm --dir web install --frozen-lockfile
       - name: Test
         run: make test
+
+  commitlint:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4.4.0
+        with:
+          node-version: 20
+      # Installed into the checkout's node_modules (ignored, no manifest or
+      # lockfile) so the ESM config resolves its preset from the repo root.
+      - name: Install commitlint
+        run: |
+          npm install --no-save --no-package-lock @commitlint/cli@19.8.1 @commitlint/config-conventional@19.8.1
+      - name: Lint pull request commits
+        run: |
+          npx --no-install commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose

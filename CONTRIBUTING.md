@@ -70,7 +70,8 @@ pre-commit run --all-files
 The last command is optional and checks every file once. The hook runs
 `ruff check` only, with no autofix and no formatting, on `shared/`, `api/`,
 and `worker/`. It is local and optional, and it does not replace
-`make lint`, which remains the gate. CI still runs only `make test`.
+`make lint`, which remains the gate. The `CI / test` job still runs only
+`make test`.
 
 The hook pins its own ruff version in `.pre-commit-config.yaml`, which may
 differ from the ruff installed in your virtual environment, so results can
@@ -86,7 +87,7 @@ scope.
 Major updates are never grouped or automerged. Renovate opens one only after
 a maintainer approves it on the Renovate dependency dashboard.
 
-CI runs only `make test`, so run `make lint` and `make build` locally on the
+The `CI / test` job runs only `make test`, so run `make lint` and `make build` locally on the
 grouped pull request before merging it. `.github/` is not covered by
 CODEOWNERS, so a review of `renovate.json` is not enforced.
 
@@ -98,9 +99,13 @@ default branch.
 `.github/CODEOWNERS` assigns `api/`, `worker/`, `shared/`, and `web/` to
 `@Braineanear`. `infra/` and `.github/` are not covered by it.
 
-CI runs a single job, `test`, shown as `CI / test`. It runs only
-`make test`. Lint is not a CI check, so run `make lint` locally before
-opening a pull request.
+CI runs two jobs. `test`, shown as `CI / test`, runs only `make test`. Lint
+is not a CI check, so run `make lint` locally before opening a pull request.
+
+The `commitlint` job, shown as `CI / commitlint`, runs only on pull requests.
+It enforces Conventional Commits (for example `feat: add export`) on every
+commit in the pull request, using `commitlint.config.mjs`. It is not a
+required check until a maintainer enables it.
 
 Maintainers can apply this recommended protection in GitHub:
 
