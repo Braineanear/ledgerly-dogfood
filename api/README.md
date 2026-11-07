@@ -124,6 +124,26 @@ An optional live test runs the migration against a real Postgres. Set
 `LEDGERLY_TEST_PG_URL` to the URL of an empty database, or one already at
 0009. Without the variable the test is skipped.
 
+## Product CSV export
+
+`GET /tenants/{tenant_id}/products.csv` streams all of the tenant's products
+as CSV. It needs the bearer token and has no filter.
+
+- The columns are `id`, `sku`, `name`, `price`, `currency`, with a header row.
+- `price` is in minor units (an integer), as in the JSON API.
+- Rows are ordered by `id`.
+- A null price or currency is an empty cell.
+- `sku` and `name` values that start with `=`, `+`, `-`, `@`, a tab or a
+  carriage return get a leading apostrophe, so spreadsheets do not run them
+  as formulas.
+- An unknown tenant returns 404 `application/problem+json`. A missing or
+  wrong token returns 401.
+
+```sh
+curl -H "Authorization: Bearer $API_TOKEN" \
+  -o products.csv http://localhost:8000/tenants/1/products.csv
+```
+
 ## Admin stats
 
 `ADMIN_KEY` is required to enable `GET /admin/stats`. Send it as the

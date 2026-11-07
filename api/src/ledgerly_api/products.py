@@ -1,15 +1,19 @@
-"""Product routes: create, list and look up one tenant's products."""
+"""Product routes: create, list, export and look up one tenant's products."""
 
 import base64
 import binascii
+import csv
+import io
+from collections.abc import Iterator
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Query, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from ledgerly_shared.orm import Product, Tenant
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import select
+from sqlalchemy import Connection, Engine, select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from ledgerly_api.auth import require_token
 from ledgerly_api.problems import problem_response
@@ -18,6 +22,10 @@ from ledgerly_api.tenants import Problem, SessionDep
 router = APIRouter(dependencies=[Depends(require_token)])
 
 MAX_ID = 2**63 - 1
+# Rows read per query when streaming the CSV export.
+BATCH_SIZE = 500
+# Cells starting with these are read as formulas by spreadsheets.
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
 
 _PROBLEM_RESPONSE = {
     "model": Problem,
@@ -192,6 +200,90 @@ def list_products(
     return ProductPage(
         items=[_read(product) for product in page],
         next_cursor=next_cursor,
+    )
+
+
+def _csv_text(value: str) -> str:
+    """Neutralize spreadsheet formulas in free text."""
+    if value.startswith(_FORMULA_PREFIXES):
+        return "'" + value
+    return value
+
+
+def _csv_chunk(rows: list[list[object]]) -> str:
+    buffer = io.StringIO()
+    csv.writer(buffer).writerows(rows)
+    return buffer.getvalue()
+
+
+def _stream_products_csv(bind: Engine | Connection, tenant_id: int) -> Iterator[str]:
+    """Yield the tenant's products as CSV, one chunk per batch.
+
+    The generator owns its Session: the request-scoped one may already be
+    closed by the time the body is consumed.
+    """
+    yield _csv_chunk([["id", "sku", "name", "price", "currency"]])
+    session = Session(bind)
+    try:
+        last = 0
+        while True:
+            batch = list(
+                session.scalars(
+                    select(Product)
+                    .where(Product.tenant_id == tenant_id, Product.id > last)
+                    .order_by(Product.id)
+                    .limit(BATCH_SIZE)
+                )
+            )
+            if not batch:
+                break
+            yield _csv_chunk(
+                [
+                    [
+                        product.id,
+                        _csv_text(product.sku),
+                        _csv_text(product.name),
+                        "" if product.price_minor is None else product.price_minor,
+                        product.currency or "",
+                    ]
+                    for product in batch
+                ]
+            )
+            last = batch[-1].id
+            if len(batch) < BATCH_SIZE:
+                break
+    finally:
+        session.close()
+
+
+@router.get(
+    "/tenants/{tenant_id}/products.csv",
+    response_class=StreamingResponse,
+    responses={
+        200: {"content": {"text/csv": {}}},
+        401: _PROBLEM_RESPONSE,
+        404: _PROBLEM_RESPONSE,
+        422: _PROBLEM_RESPONSE,
+    },
+)
+def export_products_csv(
+    request: Request,
+    tenant_id: int,
+    session: SessionDep,
+):
+    # Check the tenant before streaming: a problem response cannot replace
+    # a 200 that has already started.
+    if session.get(Tenant, tenant_id) is None:
+        return _tenant_not_found(request, tenant_id)
+    bind = session.get_bind()
+    return StreamingResponse(
+        _stream_products_csv(bind, tenant_id),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="tenant-{tenant_id}-products.csv"'
+            )
+        },
     )
 
 
