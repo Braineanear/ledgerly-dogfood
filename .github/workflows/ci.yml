@@ -1,5 +1,7 @@
 # Lint is left out on purpose; the test job only runs make test.
 # A separate commitlint job checks commit messages on pull requests.
+# A trivy job builds the api image and scans it for HIGH and CRITICAL
+# vulnerabilities that have a fix.
 # Actions are pinned to exact release tags.
 name: CI
 
@@ -59,3 +61,19 @@ jobs:
       - name: Lint pull request commits
         run: |
           npx --no-install commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+
+  trivy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - name: Build api image
+        run: docker build -f api/Dockerfile -t ledgerly-api:ci .
+      - name: Scan api image with Trivy
+        uses: aquasecurity/trivy-action@v0.33.1
+        with:
+          image-ref: ledgerly-api:ci
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
