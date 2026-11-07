@@ -90,6 +90,60 @@ curl -X POST -H "Authorization: Bearer $API_TOKEN" \
 Apply the Alembic migration (`make migrate`) so the `idempotency_key` table
 exists.
 
+## Product search
+
+`GET /tenants/{tenant_id}/products?q=<text>` filters the tenant's products
+by name. It needs the bearer token.
+
+- The match is a case-insensitive substring match on the product name.
+- `%` and `_` in `q` match literally. They are not wildcards.
+- `q` has a maximum length of 255. A longer value returns 422
+  `application/problem+json`.
+- An empty or whitespace-only `q` means no filter.
+- Results stay in id order, and the `next_cursor` cursor works as before.
+- The route is tenant-scoped. There is no bare `/products` route.
+
+```sh
+curl -H "Authorization: Bearer $API_TOKEN" \
+  "http://localhost:8000/tenants/1/products?q=widget&limit=10"
+```
+
+### Migration 0009
+
+Migration 0009 is for Postgres only. It does two things:
+
+- It runs `CREATE EXTENSION IF NOT EXISTS pg_trgm`. The database user needs
+  the privilege to `CREATE EXTENSION`.
+- It creates the GIN index `ix_product_name_trgm` on `product.name`, using
+  `gin_trgm_ops`.
+
+On sqlite it does nothing. Downgrade drops only the index and leaves the
+extension installed.
+
+An optional live test runs the migration against a real Postgres. Set
+`LEDGERLY_TEST_PG_URL` to the URL of an empty database, or one already at
+0009. Without the variable the test is skipped.
+
+## Product CSV export
+
+`GET /tenants/{tenant_id}/products.csv` streams all of the tenant's products
+as CSV. It needs the bearer token and has no filter.
+
+- The columns are `id`, `sku`, `name`, `price`, `currency`, with a header row.
+- `price` is in minor units (an integer), as in the JSON API.
+- Rows are ordered by `id`.
+- A null price or currency is an empty cell.
+- `sku` and `name` values that start with `=`, `+`, `-`, `@`, a tab or a
+  carriage return get a leading apostrophe, so spreadsheets do not run them
+  as formulas.
+- An unknown tenant returns 404 `application/problem+json`. A missing or
+  wrong token returns 401.
+
+```sh
+curl -H "Authorization: Bearer $API_TOKEN" \
+  -o products.csv http://localhost:8000/tenants/1/products.csv
+```
+
 ## Admin stats
 
 `ADMIN_KEY` is required to enable `GET /admin/stats`. Send it as the
