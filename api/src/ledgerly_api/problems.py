@@ -46,6 +46,20 @@ def problem_response(
     )
 
 
+class ForbiddenError(Exception):
+    """Raised when a known caller lacks the role the route requires."""
+
+    def __init__(self, detail: str = "Insufficient role for this tenant.") -> None:
+        super().__init__(detail)
+        self.detail = detail
+
+
+async def forbidden_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Render a ForbiddenError as a 403 application/problem+json response."""
+    detail = exc.detail if isinstance(exc, ForbiddenError) else "Forbidden."
+    return problem_response(request, 403, detail, title="Forbidden")
+
+
 async def http_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Render router and HTTP errors such as 404 and 405."""
     if not isinstance(exc, StarletteHTTPException):
@@ -81,6 +95,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 
 def register_problem_handlers(app: FastAPI) -> None:
     """Register the problem+json handlers on the application."""
+    app.add_exception_handler(ForbiddenError, forbidden_error_handler)
     app.add_exception_handler(StarletteHTTPException, http_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_error_handler)
     app.add_exception_handler(Exception, unhandled_exception_handler)
