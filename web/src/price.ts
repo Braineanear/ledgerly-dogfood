@@ -1,6 +1,10 @@
-export function formatPrice(minorUnits: number, currency: string): string {
+export function formatPrice(
+  minorUnits: number,
+  currency: string,
+  locale = 'en',
+): string {
   try {
-    const formatter = new Intl.NumberFormat('en', {
+    const formatter = new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: currency.toUpperCase(),
     })

@@ -34,6 +34,13 @@ describe('formatPrice', () => {
     expect(formatPrice(123456789, 'USD')).toBe('$1,234,567.89')
   })
 
+  it('uses the locale argument for digits', () => {
+    const result = formatPrice(250, 'USD', 'ar-EG')
+
+    expect(result).toMatch(/[٠-٩]/)
+    expect(result).not.toBe(formatPrice(250, 'USD'))
+  })
+
   it('falls back when given an empty currency string', () => {
     expect(formatPrice(250, '')).toBe('250 ')
   })
