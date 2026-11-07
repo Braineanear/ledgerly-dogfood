@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
+from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
 from ledgerly_shared.orm import AppUser, Base, Tenant, TenantMembership
@@ -12,7 +13,6 @@ from sqlalchemy import Engine, create_engine, func, select, text
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
-from alembic import command
 from ledgerly_api.auth import get_settings
 from ledgerly_api.db import get_session
 from ledgerly_api.main import create_app
