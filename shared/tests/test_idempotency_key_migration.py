@@ -40,7 +40,7 @@ def migrated(tmp_path, monkeypatch):
             )
         )
         connection.commit()
-        command.upgrade(config, "0007")
+        command.upgrade(config, "0008")
         connection.commit()
         yield config, connection
     engine.dispose()
@@ -89,7 +89,7 @@ def test_key_requires_existing_tenant(migrated) -> None:
 def test_downgrade_drops_idempotency_key_and_keeps_other_tables(migrated) -> None:
     config, connection = migrated
     connection.rollback()
-    command.downgrade(config, "0006")
+    command.downgrade(config, "0007")
     connection.commit()
     tables = set(sa.inspect(connection).get_table_names())
     assert "idempotency_key" not in tables
