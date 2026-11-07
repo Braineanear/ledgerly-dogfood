@@ -161,6 +161,7 @@ def create_product(
         400: _PROBLEM_RESPONSE,
         401: _PROBLEM_RESPONSE,
         404: _PROBLEM_RESPONSE,
+        422: _PROBLEM_RESPONSE,
     },
 )
 def list_products(
@@ -169,10 +170,15 @@ def list_products(
     session: SessionDep,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     cursor: str | None = None,
+    q: Annotated[str | None, Query(max_length=255)] = None,
 ):
     if session.get(Tenant, tenant_id) is None:
         return _tenant_not_found(request, tenant_id)
     query = select(Product).where(Product.tenant_id == tenant_id)
+    term = (q or "").strip()
+    if term:
+        escaped = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        query = query.where(Product.name.ilike(f"%{escaped}%", escape="\\"))
     if cursor is not None:
         after = _decode_cursor(cursor, tenant_id)
         if after is None:

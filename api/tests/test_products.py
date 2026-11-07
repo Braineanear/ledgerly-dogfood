@@ -141,6 +141,98 @@ def test_out_of_range_product_id_is_422_problem(
     assert response.headers["content-type"].startswith(PROBLEM)
 
 
+def _add(client: TestClient, tenant_id: int, sku: str, name: str) -> None:
+    response = client.post(
+        f"/tenants/{tenant_id}/products",
+        json={"sku": sku, "name": name, "price": 1, "currency": "USD"},
+    )
+    assert response.status_code == 201
+
+
+def _names(client: TestClient, tenant_id: int, **params) -> list[str]:
+    response = client.get(f"/tenants/{tenant_id}/products", params=params)
+    assert response.status_code == 200
+    return [item["name"] for item in response.json()["items"]]
+
+
+def test_search_is_case_insensitive_substring(client: TestClient) -> None:
+    tenant = _make_tenant(client, "A")
+    _add(client, tenant, "1", "Widget")
+    _add(client, tenant, "2", "Big WIDGET")
+    _add(client, tenant, "3", "Gadget")
+
+    assert _names(client, tenant, q="wid") == ["Widget", "Big WIDGET"]
+    assert _names(client, tenant, q="nomatch") == []
+
+
+def test_search_wildcards_are_literal(client: TestClient) -> None:
+    tenant = _make_tenant(client, "A")
+    _add(client, tenant, "1", "100% cotton")
+    _add(client, tenant, "2", "a_b")
+    _add(client, tenant, "3", "axb")
+
+    assert _names(client, tenant, q="%") == ["100% cotton"]
+    assert _names(client, tenant, q="a_b") == ["a_b"]
+
+
+def test_search_backslash_is_literal(client: TestClient) -> None:
+    tenant = _make_tenant(client, "A")
+    _add(client, tenant, "1", "a\\b")
+    _add(client, tenant, "2", "a%b")
+    _add(client, tenant, "3", "ab")
+
+    assert _names(client, tenant, q="a\\b") == ["a\\b"]
+    assert _names(client, tenant, q="\\") == ["a\\b"]
+
+
+def test_search_is_tenant_scoped(client: TestClient) -> None:
+    tenant_a = _make_tenant(client, "A")
+    tenant_b = _make_tenant(client, "B")
+    _add(client, tenant_a, "1", "Widget")
+
+    assert _names(client, tenant_b, q="wid") == []
+    assert _names(client, tenant_a, q="wid") == ["Widget"]
+
+
+def test_search_paginates_with_cursor(client: TestClient) -> None:
+    tenant = _make_tenant(client, "A")
+    for i in range(3):
+        _add(client, tenant, f"W{i}", f"Widget {i}")
+    _add(client, tenant, "G", "Gadget")
+
+    seen: list[str] = []
+    cursor = None
+    for _ in range(10):
+        params = {"q": "widget", "limit": 1}
+        if cursor:
+            params["cursor"] = cursor
+        body = client.get(f"/tenants/{tenant}/products", params=params).json()
+        seen += [item["name"] for item in body["items"]]
+        cursor = body["next_cursor"]
+        if cursor is None:
+            break
+
+    assert seen == ["Widget 0", "Widget 1", "Widget 2"]
+
+
+def test_empty_search_returns_everything(client: TestClient) -> None:
+    tenant = _make_tenant(client, "A")
+    _add(client, tenant, "1", "Widget")
+    _add(client, tenant, "2", "Gadget")
+
+    assert len(_names(client, tenant, q="")) == 2
+    assert len(_names(client, tenant, q="   ")) == 2
+
+
+def test_overlong_search_is_422_problem(client: TestClient) -> None:
+    tenant = _make_tenant(client, "A")
+
+    response = client.get(f"/tenants/{tenant}/products", params={"q": "x" * 256})
+
+    assert response.status_code == 422
+    assert response.headers["content-type"].startswith(PROBLEM)
+
+
 def test_cursor_from_other_tenant_decodes_to_none() -> None:
     cursor = _encode_cursor(1, 5)
 
