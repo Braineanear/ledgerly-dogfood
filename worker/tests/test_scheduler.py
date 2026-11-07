@@ -1,6 +1,12 @@
 """Tests for the nightly scheduler, driven by a fake clock."""
 
 import logging
+import os
+import signal
+import subprocess
+import sys
+import textwrap
+import time
 from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
@@ -269,3 +275,284 @@ def test_default_job_runs_recompute_through_scheduler(db_url):
         ).all()
     engine.dispose()
     assert {row[0]: row[1] for row in rows} == {"a": 8, "b": 2}
+
+
+CHILD = textwrap.dedent(
+    """
+    import os
+    import sys
+    import time
+    from datetime import UTC, datetime, timedelta
+    from pathlib import Path
+
+    from ledgerly_worker import scheduler
+
+    marker_dir = Path(os.environ["SCHEDULER_STUB_JOB_DIR"])
+    calls = []
+
+
+    def stub():
+        n = len(list(marker_dir.glob("started-*"))) + 1
+        (marker_dir / f"started-{n}").write_text("")
+        time.sleep(1.0)
+        (marker_dir / f"done-{n}").write_text("")
+
+
+    def fake_now():
+        calls.append(1)
+        start = datetime(2025, 1, 1, tzinfo=UTC)
+        if len(calls) == 1:
+            return start
+        days = len(calls) - 2
+        return start + timedelta(hours=3, days=days)
+
+
+    sys.exit(
+        scheduler.main(
+            install_signals=True, job=stub, now=fake_now
+        )
+    )
+    """
+)
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="needs POSIX signals"
+)
+def test_sigterm_during_job_finishes_job_and_exits_0(tmp_path):
+    env = dict(os.environ)
+    env.pop("DATABASE_URL", None)
+    env.pop("RECOMPUTE_AT", None)
+    env["PYTHONPATH"] = os.pathsep.join(sys.path)
+    env["SCHEDULER_STUB_JOB_DIR"] = str(tmp_path)
+    proc = subprocess.Popen(
+        [sys.executable, "-c", CHILD],
+        env=env,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        deadline = time.monotonic() + 10
+        while not (tmp_path / "started-1").exists():
+            assert proc.poll() is None, "child exited early"
+            assert time.monotonic() < deadline, "job never started"
+            time.sleep(0.02)
+        proc.send_signal(signal.SIGTERM)
+        assert proc.wait(timeout=10) == 0
+        assert (tmp_path / "done-1").exists()
+        assert not (tmp_path / "started-2").exists()
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait()
+
+
+CHILD_WAIT = textwrap.dedent(
+    """
+    import os
+    import sys
+    import time
+    from datetime import UTC, datetime
+    from pathlib import Path
+
+    from ledgerly_worker import scheduler
+
+    marker_dir = Path(os.environ["SCHEDULER_STUB_JOB_DIR"])
+
+
+    def stub():
+        (marker_dir / "started-1").write_text("")
+
+
+    def fake_now():
+        (marker_dir / "waiting-1").write_text("")
+        return datetime(2025, 1, 1, 1, 0, tzinfo=UTC)
+
+
+    sys.exit(
+        scheduler.main(
+            install_signals=True, job=stub, now=fake_now
+        )
+    )
+    """
+)
+
+
+CHILD_FAILING_JOB = textwrap.dedent(
+    """
+    import os
+    import sys
+    import time
+    from datetime import UTC, datetime, timedelta
+    from pathlib import Path
+
+    from ledgerly_worker import scheduler
+
+    marker_dir = Path(os.environ["SCHEDULER_STUB_JOB_DIR"])
+    calls = []
+
+
+    def stub():
+        n = len(list(marker_dir.glob("started-*"))) + 1
+        (marker_dir / f"started-{n}").write_text("")
+        time.sleep(1.0)
+        raise RuntimeError("simulated job failure")
+
+
+    def fake_now():
+        calls.append(1)
+        start = datetime(2025, 1, 1, tzinfo=UTC)
+        if len(calls) == 1:
+            return start
+        days = len(calls) - 2
+        return start + timedelta(hours=3, days=days)
+
+
+    sys.exit(
+        scheduler.main(
+            install_signals=True, job=stub, now=fake_now
+        )
+    )
+    """
+)
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="needs POSIX signals"
+)
+def test_sigint_during_job_finishes_job_and_exits_0(tmp_path):
+    env = dict(os.environ)
+    env.pop("DATABASE_URL", None)
+    env.pop("RECOMPUTE_AT", None)
+    env["PYTHONPATH"] = os.pathsep.join(sys.path)
+    env["SCHEDULER_STUB_JOB_DIR"] = str(tmp_path)
+    proc = subprocess.Popen(
+        [sys.executable, "-c", CHILD],
+        env=env,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        deadline = time.monotonic() + 10
+        while not (tmp_path / "started-1").exists():
+            assert proc.poll() is None, "child exited early"
+            assert time.monotonic() < deadline, "job never started"
+            time.sleep(0.02)
+        proc.send_signal(signal.SIGINT)
+        assert proc.wait(timeout=10) == 0
+        assert (tmp_path / "done-1").exists()
+        assert not (tmp_path / "started-2").exists()
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait()
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="needs POSIX signals"
+)
+def test_sigterm_during_wait_exits_without_running_job(tmp_path):
+    env = dict(os.environ)
+    env.pop("DATABASE_URL", None)
+    env.pop("RECOMPUTE_AT", None)
+    env["PYTHONPATH"] = os.pathsep.join(sys.path)
+    env["SCHEDULER_STUB_JOB_DIR"] = str(tmp_path)
+    proc = subprocess.Popen(
+        [sys.executable, "-c", CHILD_WAIT],
+        env=env,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        deadline = time.monotonic() + 10
+        while not (tmp_path / "waiting-1").exists():
+            assert proc.poll() is None, "child exited early"
+            assert time.monotonic() < deadline, "wait never reached"
+            time.sleep(0.02)
+        proc.send_signal(signal.SIGTERM)
+        assert proc.wait(timeout=10) == 0
+        assert not (tmp_path / "started-1").exists()
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait()
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="needs POSIX signals"
+)
+def test_sigterm_during_failing_job_exits_0(tmp_path):
+    env = dict(os.environ)
+    env.pop("DATABASE_URL", None)
+    env.pop("RECOMPUTE_AT", None)
+    env["PYTHONPATH"] = os.pathsep.join(sys.path)
+    env["SCHEDULER_STUB_JOB_DIR"] = str(tmp_path)
+    proc = subprocess.Popen(
+        [sys.executable, "-c", CHILD_FAILING_JOB],
+        env=env,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        deadline = time.monotonic() + 10
+        while not (tmp_path / "started-1").exists():
+            assert proc.poll() is None, "child exited early"
+            assert time.monotonic() < deadline, "job never started"
+            time.sleep(0.02)
+        proc.send_signal(signal.SIGTERM)
+        assert proc.wait(timeout=10) == 0
+        assert not (tmp_path / "started-2").exists()
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait()
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="needs POSIX signals"
+)
+def test_multiple_signals_during_job_finishes_job_and_exits_0(tmp_path):
+    env = dict(os.environ)
+    env.pop("DATABASE_URL", None)
+    env.pop("RECOMPUTE_AT", None)
+    env["PYTHONPATH"] = os.pathsep.join(sys.path)
+    env["SCHEDULER_STUB_JOB_DIR"] = str(tmp_path)
+    proc = subprocess.Popen(
+        [sys.executable, "-c", CHILD],
+        env=env,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    try:
+        deadline = time.monotonic() + 10
+        while not (tmp_path / "started-1").exists():
+            assert proc.poll() is None, "child exited early"
+            assert time.monotonic() < deadline, "job never started"
+            time.sleep(0.02)
+        proc.send_signal(signal.SIGTERM)
+        time.sleep(0.05)
+        proc.send_signal(signal.SIGINT)
+        assert proc.wait(timeout=10) == 0
+        assert (tmp_path / "done-1").exists()
+        assert not (tmp_path / "started-2").exists()
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait()
+
+
+def test_signal_handlers_restored_after_main():
+    orig_sigint = signal.getsignal(signal.SIGINT)
+    orig_sigterm = signal.getsignal(signal.SIGTERM)
+    clock = FakeClock(at(1, 0))
+    clock.stop()
+    code = scheduler.main(
+        install_signals=True,
+        now=clock.now,
+        wait=clock.wait,
+        job=lambda: 0,
+    )
+    assert code == 0
+    assert signal.getsignal(signal.SIGINT) == orig_sigint
+    assert signal.getsignal(signal.SIGTERM) == orig_sigterm
+
