@@ -1,0 +1,42 @@
+name: Feature request
+description: Suggest an improvement or new capability
+labels: [enhancement]
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of Ledgerly does this affect?
+      options:
+        - api
+        - worker
+        - shared
+        - web
+        - infra
+        - other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem are you trying to solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed solution
+      description: Describe what you would like to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you have considered.
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Anything else that helps, such as links or screenshots.
