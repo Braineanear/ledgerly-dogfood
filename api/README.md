@@ -59,6 +59,37 @@ curl -H "Authorization: Bearer $API_TOKEN" http://localhost:8000/tenants/1
 A missing or wrong token returns 401 `application/problem+json` with a
 `WWW-Authenticate: Bearer` header.
 
+## Stock movements
+
+`POST /tenants/{tenant_id}/movements` records a stock movement. It needs the
+bearer token. The JSON body is `{"product_id": 1, "warehouse": "main",
+"quantity": 5}`. A negative `quantity` is an outbound movement, and zero is
+rejected. It returns 201 with `{id, product_id, warehouse, quantity}`. An
+unknown tenant or product returns 404 `application/problem+json`.
+
+```sh
+curl -X POST -H "Authorization: Bearer $API_TOKEN" \
+  -H "Idempotency-Key: order-42" -H "Content-Type: application/json" \
+  -d '{"product_id": 1, "warehouse": "main", "quantity": 5}' \
+  http://localhost:8000/tenants/1/movements
+```
+
+### Idempotency-Key
+
+- The `Idempotency-Key` header is optional (1 to 255 characters). Without it,
+  every request creates a movement.
+- Keys are scoped per tenant. The same key under two tenants is independent.
+- Repeating a key with the same body returns the first response (same status
+  and body) and writes no second movement.
+- Repeating a key with a different body returns 409 `application/problem+json`
+  and writes nothing.
+- Only 201 responses are stored. Errors such as 404 are not stored, so the key
+  can be reused after a failure.
+- Keys never expire in this version.
+
+Apply the Alembic migration (`make migrate`) so the `idempotency_key` table
+exists.
+
 ## Admin stats
 
 `ADMIN_KEY` is required to enable `GET /admin/stats`. Send it as the

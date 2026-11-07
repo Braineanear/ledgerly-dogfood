@@ -16,6 +16,7 @@ from ledgerly_api.auth import (
 )
 from ledgerly_api.flags import router as flags_router
 from ledgerly_api.logging_config import configure_logging
+from ledgerly_api.movements import router as movements_router
 from ledgerly_api.problems import register_problem_handlers
 from ledgerly_api.products import router as products_router
 from ledgerly_api.ready import router as ready_router
@@ -61,6 +62,7 @@ def create_app() -> FastAPI:
     register_problem_handlers(application)
     application.include_router(tenants_router)
     application.include_router(products_router)
+    application.include_router(movements_router)
     application.include_router(ready_router)
     application.include_router(admin_router)
     application.include_router(flags_router)
